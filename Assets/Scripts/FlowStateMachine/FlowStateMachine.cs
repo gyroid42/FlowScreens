@@ -6,93 +6,160 @@ namespace FlowState
 {
     public class FlowStateMachine
     {
+        private const int k_stateStackCapacity = 32;
         private enum Command
         {
-            PUSH_SCREEN,
-            POP_SCREEN
+            PUSH_STATE,
+            POP_STATE
         }
 
-        private struct FlowTask
+        private struct FlowCommand
         {
             public Command Command;
-            public FlowScreen FlowScreen;
+            public FlowState FlowState;
         }
         
-        private readonly Stack<FlowScreen> m_screenStack = new Stack<FlowScreen>();
-        private readonly Queue<FlowTask> m_taskQueue = new Queue<FlowTask>();
-        private readonly Queue<object>[] m_pendingMessageQueue = new Queue<object>[32];
+        private readonly Stack<FlowState> m_stateStack = new Stack<FlowState>(k_stateStackCapacity);
+        private readonly Queue<FlowCommand> m_commandQueue = new Queue<FlowCommand>();
+        private readonly Queue<object>[] m_pendingMessageQueue = new Queue<object>[k_stateStackCapacity];
 
-        private FlowScreen ActiveFlowScreen => m_screenStack.Count == 0? null : m_screenStack.Peek();
-        
-        public void PushScreen(FlowScreen flowScreen)
+        private FlowState ActiveFlowState => m_stateStack.Count == 0? null : m_stateStack.Peek();
+
+        public FlowStateMachine()
         {
-            m_taskQueue.Enqueue(new FlowTask
+            for (int i = 0; i < m_pendingMessageQueue.Length; i++)
             {
-                Command = Command.PUSH_SCREEN, 
-                FlowScreen = flowScreen, 
-            });
+                m_pendingMessageQueue[i] = new Queue<object>();
+            }
         }
 
-        public void PopScreen()
-        {
-            m_taskQueue.Enqueue(new FlowTask { Command = Command.POP_SCREEN });
-        }
-        
-        public void SendFlowMessageToActiveStates(object message)
-        {
-            var activeScreen = ActiveFlowScreen;
+        #region Public API
 
-            if (activeScreen == null)
+        public void SendMessageToActiveState(object message)
+        {
+            if (m_stateStack.Count <= 0)
             {
-                Debug.LogWarning($"trying to send message {message} to empty flowScreen stack");
+                Debug.LogWarning("attempting to send message to active state in FSM that is empty");
                 return;
             }
 
-            activeScreen.SendMessageActiveStates(message);
+            m_pendingMessageQueue[m_stateStack.Count].Enqueue(message);
+        }
+        
+        public void SendMessageToState(int stateId, object message)
+        {
+            if (stateId >= m_stateStack.Count ||
+                stateId < 0)
+            {
+                return;
+            }
+
+            m_pendingMessageQueue[stateId].Enqueue(message);
+        }
+        
+        public void PushState(FlowState flowState)
+        {
+            m_commandQueue.Enqueue(new FlowCommand
+            {
+                Command = Command.PUSH_STATE, 
+                FlowState = flowState, 
+            });
+        }
+
+        public void PopState()
+        {
+            m_commandQueue.Enqueue(new FlowCommand { Command = Command.POP_STATE });
         }
 
         public void Update()
         {
-            FlowScreen activeFlowScreen = ActiveFlowScreen;
-            if (activeFlowScreen == null)
+            UpdateActive();
+            UpdateInActive();
+        }
+        
+        public void FixedUpdate()
+        {
+            FlowState activeFlowState = ActiveFlowState;
+
+            if (!(activeFlowState is { CurrentLifecycleState: LifecycleState.ACTIVE }))
             {
                 return;
             }
 
-            switch (activeFlowScreen.CurrentLifecycleState)
+            activeFlowState.OnActiveFixedUpdateInternal();
+        }
+        
+        public void LateUpdate()
+        {
+            FlowState activeFlowState = ActiveFlowState;
+
+            if (!(activeFlowState is { CurrentLifecycleState: LifecycleState.ACTIVE }))
+            {
+                return;
+            }
+
+            activeFlowState.OnActiveLateUpdateInternal();
+        }
+
+        #endregion
+        
+
+        
+        private void UpdateActive()
+        {
+            FlowState activeFlowState = ActiveFlowState;
+            if (activeFlowState == null)
+            {
+                return;
+            }
+
+            switch (activeFlowState.CurrentLifecycleState)
             {
                 case LifecycleState.PRESENTING:
                 {
-                    FlowProgress presentingProgress = activeFlowScreen.OnPresentingUpdate();
+                    FlowProgress presentingProgress = activeFlowState.OnPresentingUpdate();
                     if (presentingProgress == FlowProgress.COMPLETE)
                     {
-                        activeFlowScreen.CurrentLifecycleState = LifecycleState.ACTIVE;
-                        activeFlowScreen.OnActiveStart();
+                        activeFlowState.CurrentLifecycleState = LifecycleState.ACTIVE;
+                        activeFlowState.OnActiveStartInternal();
                     }
                     break;
                 }
 
                 case LifecycleState.ACTIVE:
                 {
-                    activeFlowScreen.OnActiveUpdate();
+                    while (m_pendingMessageQueue[activeFlowState.Id].Count > 0)
+                    {
+                        var message = m_pendingMessageQueue[activeFlowState.Id].Dequeue();
+                        activeFlowState.OnFlowMessageReceived(message);
+                    }
+
+                    ProcessNextFlowCommand(m_stateStack, m_commandQueue, activeFlowState);
+                    
+                    activeFlowState.OnActiveUpdateInternal();
                     break;
                 }
 
                 case LifecycleState.DISMISSING:
                 {
-                    FlowProgress dismissProgress = activeFlowScreen.OnDismissingUpdate();
+                    FlowProgress dismissProgress = activeFlowState.OnDismissingUpdateInternal();
                     if (dismissProgress == FlowProgress.COMPLETE)
                     {
-                        m_screenStack.Pop();
-                        activeFlowScreen.OnDismissed();
-                        activeFlowScreen.CurrentLifecycleState = LifecycleState.DISMISSED;
-                        activeFlowScreen.ClearMessageQueue();
+                        m_stateStack.Pop();
+                        activeFlowState.OnDismissed();
+                        activeFlowState.CurrentLifecycleState = LifecycleState.DISMISSED;
+                        activeFlowState.ClearMessageQueue();
+                        m_pendingMessageQueue[activeFlowState.Id].Clear();
 
-                        if (m_screenStack.Count > 0)
+                        if (m_stateStack.Count > 0)
                         {
-                            activeFlowScreen = m_screenStack.Peek();
-                            activeFlowScreen.CurrentLifecycleState = LifecycleState.ACTIVE;
-                            activeFlowScreen.OnActiveStart();
+                            activeFlowState = m_stateStack.Peek();
+                            activeFlowState.CurrentLifecycleState = LifecycleState.ACTIVE;
+                            activeFlowState.OnActiveStartInternal();
+                        }
+                        else if (m_commandQueue.Count > 0)
+                        {
+                            ProcessNextFlowCommand(m_stateStack, m_commandQueue, null);
                         }
                     }
                     break;
@@ -100,84 +167,62 @@ namespace FlowState
             }
         }
 
-        public void InActiveUpdate()
+        private void UpdateInActive()
         {
-            var stackArray = m_screenStack.ToArray();
-
-            for (int i = 1; i < stackArray.Length; i++)
+            int index = 0;
+            foreach (var state in m_stateStack)
             {
-                stackArray[i].OnInActiveUpdate();
+                if (index >= m_stateStack.Count-1)
+                {
+                    break;
+                }
+                
+                state.OnInActiveUpdate();
+
+                index++;
             }
-        }
-
-        public void FixedUpdate()
-        {
-            FlowScreen activeFlowScreen = ActiveFlowScreen;
-
-            if (activeFlowScreen == null || activeFlowScreen.CurrentLifecycleState != LifecycleState.ACTIVE)
-            {
-                return;
-            }
-
-            activeFlowScreen.OnActiveFixedUpdate();
         }
         
-        public void LateUpdate()
+        private void ProcessNextFlowCommand(in Stack<FlowState> stateStack, in Queue<FlowCommand> commandQueue, in FlowState activeFlowState)
         {
-            FlowScreen activeFlowScreen = ActiveFlowScreen;
-
-            if (!(activeFlowScreen is { CurrentLifecycleState: LifecycleState.ACTIVE }))
+            FlowCommand command = commandQueue.Dequeue();
+            switch (command.Command)
             {
-                return;
-            }
-
-            activeFlowScreen.OnActiveLateUpdate();
-        }
-
-        private void TryProcessNextFlowTask(FlowScreen activeFlowScreen)
-        {
-            if (m_taskQueue.Count <= 0)
-            {
-                return;
-            }
-            
-            FlowTask task = m_taskQueue.Dequeue();
-            switch (task.Command)
-            {
-                case Command.PUSH_SCREEN:
+                case Command.PUSH_STATE:
                 {
-                    if (activeFlowScreen != null)
+                    if (activeFlowState != null)
                     {
-                        activeFlowScreen.CurrentLifecycleState = LifecycleState.INACTIVE;
-                        activeFlowScreen.OnInActiveStart();
+                        activeFlowState.CurrentLifecycleState = LifecycleState.INACTIVE;
+                        activeFlowState.OnInActiveStart();
                     }
 
-                    PushScreenToStack(task.FlowScreen);
+                    PushStateToStack(stateStack, command.FlowState);
                     break;
                 }
                     
-                case Command.POP_SCREEN:
+                case Command.POP_STATE:
                 {
-                    if (activeFlowScreen == null)
+                    if (activeFlowState == null)
                     {
                         break;
                     }
 
-                    activeFlowScreen.CurrentLifecycleState = LifecycleState.DISMISSING;
-                    activeFlowScreen.OnDismissingStart();
+                    activeFlowState.CurrentLifecycleState = LifecycleState.DISMISSING;
+                    activeFlowState.OnDismissingStartInternal();
                     break;
                 }
             }
         }
 
-        private void PushScreenToStack(FlowScreen flowScreen)
+        private void PushStateToStack(in Stack<FlowState> stateStack, in FlowState flowState)
         {
-            flowScreen.CurrentLifecycleState = LifecycleState.PRESENTING;
-            flowScreen.OwningFSM = this;
+            flowState.CurrentLifecycleState = LifecycleState.PRESENTING;
+            flowState.OwningFSM = this;
+            flowState.Id = stateStack.Count;
 
-            m_screenStack.Push(flowScreen);
+            stateStack.Push(flowState);
 
-            flowScreen.OnPresentingStart();
+            flowState.OnPresentingStart();
         }
     }
 }
