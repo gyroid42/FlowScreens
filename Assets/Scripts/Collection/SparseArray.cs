@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Collections
 {
@@ -113,9 +114,11 @@ namespace Collections
             Length--;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool KeyValid(int key) => 
             key >= 0 && key < m_keyToIndex.Length;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(int key) => m_keyToIndex[key] >= 0;
         
         public bool Contains(Predicate<T> predicate)

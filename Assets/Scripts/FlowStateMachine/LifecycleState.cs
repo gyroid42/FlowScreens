@@ -3,6 +3,7 @@
     public enum LifecycleState
     {
         DEFAULT,
+        INITIALISING,
         ACTIVE,
         PRESENTING,
         DISMISSING,

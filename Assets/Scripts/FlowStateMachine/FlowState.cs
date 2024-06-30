@@ -10,8 +10,8 @@ namespace FlowState
         
         private enum Command
         {
-            ADD_STATE,
-            DISMISS_STATE,
+            ADD_WINDOW,
+            DISMISS_WINDOW,
             SET_ACTIVE_STATE,
             SET_INACTIVE_STATE
         }
@@ -29,66 +29,23 @@ namespace FlowState
         private readonly SparseArray<FlowWindow> m_presentingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
         
         private readonly Queue<FlowWindowCommand> m_commandQueue = new Queue<FlowWindowCommand>();
-        private Queue<(int windowId, object message)> m_pendingMessageQueue;
-
         
         public FlowStateMachine OwningFSM { get; internal set; }
         public LifecycleState CurrentLifecycleState { get; internal set; }
         public int Id { get; internal set; }
         
         
+        #region Internal API
         
-        #region Public API
-
-        public void SendMessageActiveWindows(object message)
+        internal void SendMessageToWindow(int windowId, object message)
         {
-            for (var index = 0; index < m_activeWindows.Length; index++)
+            if (m_windows.TryGetValue(windowId, out var window))
             {
-                var window = m_activeWindows[index];
-                m_pendingMessageQueue.Enqueue((window.Id, message));
+                window.OnFlowMessageReceived(message);
             }
         }
-
-        public void SendMessageToWindow(int windowId, object message) => m_pendingMessageQueue.Enqueue((windowId, message));
-
-        #endregion
-
         
-        
-        #region Virtual Methods
-
-        internal virtual void OnFlowMessageReceived(object message) { }
-        internal virtual void OnPresentingStart() { }
-        internal virtual FlowProgress OnPresentingUpdate()
-        {
-            return FlowProgress.COMPLETE;
-        }
-        
-        protected virtual void OnActiveStart() { }
-        protected virtual void OnActiveUpdate() { }
-        protected virtual void OnActiveLateUpdate() { }
-        protected virtual void OnActiveFixedUpdate() { }
-        protected virtual void OnDismissingStart() { }
-
-        protected virtual FlowProgress OnDismissingUpdate()
-        {
-            return FlowProgress.COMPLETE;
-        }
-        
-        internal virtual void OnDismissed() { }
-        internal virtual void OnInActiveStart() { }
-        internal virtual void OnInActiveUpdate() { }
-
-        #endregion
-        
-        
-        
-        internal void ClearMessageQueue()
-        {
-            m_pendingMessageQueue.Clear();
-        }
-        
-        internal void OnActiveStartInternal()
+                internal void OnActiveStartInternal()
         {
             for (var index = 0; index < m_activeWindows.Length; index++)
             {
@@ -101,12 +58,6 @@ namespace FlowState
         
         internal void OnActiveUpdateInternal()
         {
-            while (m_pendingMessageQueue.Count > 0)
-            {
-                (int id, object message) = m_pendingMessageQueue.Dequeue();
-                m_windows.GetValue(id).OnFlowMessageReceived(message);
-            }
-
             while (m_commandQueue.Count > 0)
             {
                 ProcessNextWindowCommand();
@@ -198,20 +149,53 @@ namespace FlowState
             return m_windows.Length == 0? FlowProgress.COMPLETE : FlowProgress.PROGRESSING;
         }
         
+
+        #endregion
+        
+        #region Virtual Methods
+
+        internal virtual void OnFlowMessageReceived(object message) { }
+
+        internal virtual void OnInit() {  }
+        internal virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
+        
+        
+        internal virtual void OnPresentingStart() { }
+        internal virtual FlowProgress OnPresentingUpdate() => FlowProgress.COMPLETE;
+        
+        
+        protected virtual void OnActiveStart() { }
+        protected virtual void OnActiveUpdate() { }
+        protected virtual void OnActiveLateUpdate() { }
+        protected virtual void OnActiveFixedUpdate() { }
+        
+        
+        protected virtual void OnDismissingStart() { }
+        protected virtual FlowProgress OnDismissingUpdate() => FlowProgress.COMPLETE;
+        internal virtual void OnDismissed() { }
+        
+        
+        internal virtual void OnInActiveStart() { }
+        internal virtual void OnInActiveUpdate() { }
+
+        #endregion
+        
+        #region Private Methods
+        
         private void ProcessNextWindowCommand()
         {
             FlowWindowCommand command = m_commandQueue.Dequeue();
             switch (command.Command)
             {
-                case Command.ADD_STATE:
+                case Command.ADD_WINDOW:
                 {
                     AddWindow(command.Window);
                     break;
                 }
 
-                case Command.DISMISS_STATE:
+                case Command.DISMISS_WINDOW:
                 {
-                    DismissState(command.Window.Id);
+                    DismissWindow(command.Window.Id);
                     break;
                 }
 
@@ -239,7 +223,7 @@ namespace FlowState
             }
         }
         
-        private void DismissState(int id)
+        private void DismissWindow(int id)
         {
             if (!m_windows.TryGetValue(id, out var flowWindow))
             {
@@ -294,7 +278,11 @@ namespace FlowState
             flowWindow.CurrentState = LifecycleState.PRESENTING;
             flowWindow.Id = m_windows.Insert(flowWindow);
             
-            m_activeWindows.Insert(flowWindow.Id, flowWindow);
+            
+            
+            //m_activeWindows.Insert(flowWindow.Id, flowWindow);
+            
+            // add on init to windows
             m_presentingWindows.Insert(flowWindow.Id, flowWindow);
         }
 
@@ -317,5 +305,7 @@ namespace FlowState
 
             m_inactiveWindows.Insert(flowWindow.Id, flowWindow);
         }
+        
+        #endregion
     }
 }

@@ -6,12 +6,15 @@
         public FlowState Owner { get; internal set; }
         public int Id { get; internal set; }
         
-        public virtual void OnActiveStart() { }
-
+        public virtual void OnInit() { }
+        public virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
+        
         public virtual FlowProgress OnPresentingUpdate()
         {
             return FlowProgress.COMPLETE;
         }
+        
+        public virtual void OnActiveStart() { }
         public virtual void OnActiveUpdate() { }
         public virtual void OnInActiveUpdate() { }
 
