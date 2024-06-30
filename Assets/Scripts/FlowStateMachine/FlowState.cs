@@ -124,7 +124,7 @@ namespace FlowState
             for (var index = 0; index < m_windows.Length; index++)
             {
                 var window = m_windows[index];
-                DismissState(window.Id);
+                DismissWindow(window.Id);
             }
             
             OnDismissingStart();
