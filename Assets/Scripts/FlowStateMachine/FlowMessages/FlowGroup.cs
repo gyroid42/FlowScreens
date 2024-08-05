@@ -5,10 +5,10 @@ namespace FlowState
     public class FlowGroup : MonoBehaviour
     {
         private FlowStateMachine m_fsm;
-        private int m_flowStateId;
-        private int m_flowWindowId;
+        private byte m_flowStateId;
+        private short m_flowWindowId;
 
-        public void Link(FlowStateMachine fsm, int flowStateId, int flowWindowId = -1)
+        public void Link(FlowStateMachine fsm, byte flowStateId, short flowWindowId = -1)
         {
             m_fsm = fsm;
             m_flowStateId = flowStateId;
