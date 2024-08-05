@@ -8,18 +8,18 @@ namespace FlowState
     {
         private const int k_windowCapacity = 20;
         
-        private enum Command
+        private enum Command : byte
         {
             ADD_WINDOW,
             DISMISS_WINDOW,
-            SET_ACTIVE_STATE,
-            SET_INACTIVE_STATE
+            SET_WINDOW_ACTIVE,
+            SET_WINDOW_INACTIVE
         }
 
         private struct FlowWindowCommand
         {
             public Command Command;
-            public FlowWindow Window;
+            public byte WindowId;
         }
         
         private readonly SparseArray<FlowWindow> m_windows = new SparseArray<FlowWindow>(k_windowCapacity);
@@ -27,13 +27,56 @@ namespace FlowState
         private readonly SparseArray<FlowWindow> m_inactiveWindows = new SparseArray<FlowWindow>(k_windowCapacity);
         private readonly SparseArray<FlowWindow> m_dismissingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
         private readonly SparseArray<FlowWindow> m_presentingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
-        
+        private readonly SparseArray<FlowWindow> m_initialisingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
+
+        private readonly Queue<FlowWindow> m_windowsToAdd = new Queue<FlowWindow>();
         private readonly Queue<FlowWindowCommand> m_commandQueue = new Queue<FlowWindowCommand>();
         
         public FlowStateMachine OwningFSM { get; internal set; }
         public LifecycleState CurrentLifecycleState { get; internal set; }
-        public int Id { get; internal set; }
+        public byte Id { get; internal set; }
         
+        #region Public API
+
+        public void AddWindow(FlowWindow window)
+        {
+            m_windowsToAdd.Enqueue(window);
+            
+            m_commandQueue.Enqueue(new FlowWindowCommand
+            {
+                Command = Command.ADD_WINDOW,
+                WindowId = 0
+            });
+        }
+
+        public void DismissWindow(byte windowId)
+        {
+            m_commandQueue.Enqueue(new FlowWindowCommand
+            {
+                Command = Command.DISMISS_WINDOW,
+                WindowId = windowId
+            });
+        }
+
+        public void SetWindowActive(byte windowId)
+        {
+            m_commandQueue.Enqueue(new FlowWindowCommand
+            {
+                Command = Command.SET_WINDOW_ACTIVE,
+                WindowId = windowId
+            });
+        }
+
+        public void SetWindowInactive(byte windowId)
+        {
+            m_commandQueue.Enqueue(new FlowWindowCommand
+            {
+                Command = Command.SET_WINDOW_INACTIVE,
+                WindowId = windowId
+            });
+        }
+        
+        #endregion
         
         #region Internal API
         
@@ -45,11 +88,11 @@ namespace FlowState
             }
         }
         
-                internal void OnActiveStartInternal()
+        internal void OnActiveStartInternal()
         {
-            for (var index = 0; index < m_activeWindows.Length; index++)
+            for (var i = 0; i < m_activeWindows.Length; i++)
             {
-                var window = m_activeWindows[index];
+                var window = m_activeWindows[i];
                 window.OnActiveStart();
             }
             
@@ -63,30 +106,43 @@ namespace FlowState
                 ProcessNextWindowCommand();
             }
 
-            for (var index = 0; index < m_presentingWindows.Length; index++)
+            for (int i = 0; i < m_initialisingWindows.Length; i++)
             {
-                var window = m_presentingWindows[index];
+                var window = m_initialisingWindows[i];
+                FlowProgress progress = window.OnInitUpdate();
+                if (progress == FlowProgress.COMPLETE)
+                {
+                    m_initialisingWindows.Remove(window.Id);
+                    SetWindowPresenting(window);
+                }
+            }
+
+            for (var i = 0; i < m_presentingWindows.Length; i++)
+            {
+                var window = m_presentingWindows[i];
                 FlowProgress progress = window.OnPresentingUpdate();
                 if (progress == FlowProgress.COMPLETE)
                 {
                     m_presentingWindows.Remove(window.Id);
                     SetWindowActive(window);
-                    window.OnActiveStart();
                 }
             }
-            for (var index = 0; index < m_activeWindows.Length; index++)
+            
+            for (var i = 0; i < m_activeWindows.Length; i++)
             {
-                var window = m_activeWindows[index];
+                var window = m_activeWindows[i];
                 window.OnActiveUpdate();
             }
-            for (var index = 0; index < m_inactiveWindows.Length; index++)
+            
+            for (var i = 0; i < m_inactiveWindows.Length; i++)
             {
-                var window = m_inactiveWindows[index];
+                var window = m_inactiveWindows[i];
                 window.OnInActiveUpdate();
             }
-            for (var index = 0; index < m_dismissingWindows.Length; index++)
+            
+            for (var i = 0; i < m_dismissingWindows.Length; i++)
             {
-                var window = m_dismissingWindows[index];
+                var window = m_dismissingWindows[i];
                 FlowProgress progress = window.OnDismissingUpdate();
                 if (progress == FlowProgress.COMPLETE)
                 {
@@ -99,9 +155,9 @@ namespace FlowState
         
         internal void OnActiveLateUpdateInternal()
         {
-            for (var index = 0; index < m_activeWindows.Length; index++)
+            for (var i = 0; i < m_activeWindows.Length; i++)
             {
-                var window = m_activeWindows[index];
+                var window = m_activeWindows[i];
                 window.OnActiveLateUpdate();
             }
             
@@ -110,9 +166,9 @@ namespace FlowState
 
         internal void OnActiveFixedUpdateInternal()
         {
-            for (var index = 0; index < m_activeWindows.Length; index++)
+            for (var i = 0; i < m_activeWindows.Length; i++)
             {
-                var window = m_activeWindows[index];
+                var window = m_activeWindows[i];
                 window.OnActiveFixedUpdate();
             }
             
@@ -121,10 +177,10 @@ namespace FlowState
 
         internal void OnDismissingStartInternal()
         {
-            for (var index = 0; index < m_windows.Length; index++)
+            for (var i = 0; i < m_windows.Length; i++)
             {
-                var window = m_windows[index];
-                DismissWindow(window.Id);
+                var window = m_windows[i];
+                HandleDismissWindowCommand(window.Id);
             }
             
             OnDismissingStart();
@@ -132,9 +188,9 @@ namespace FlowState
 
         internal FlowProgress OnDismissingUpdateInternal()
         {
-            for (var index = 0; index < m_dismissingWindows.Length; index++)
+            for (var i = 0; i < m_dismissingWindows.Length; i++)
             {
-                var window = m_dismissingWindows[index];
+                var window = m_dismissingWindows[i];
                 if (window.OnDismissingUpdate() == FlowProgress.COMPLETE)
                 {
                     RemoveWindow(window.Id);
@@ -189,41 +245,44 @@ namespace FlowState
             {
                 case Command.ADD_WINDOW:
                 {
-                    AddWindow(command.Window);
+                    FlowWindow newWindow = m_windowsToAdd.Dequeue();
+                    HandleAddWindowCommand(newWindow);
                     break;
                 }
 
                 case Command.DISMISS_WINDOW:
                 {
-                    DismissWindow(command.Window.Id);
+                    HandleDismissWindowCommand(command.WindowId);
                     break;
                 }
 
-                case Command.SET_ACTIVE_STATE:
+                case Command.SET_WINDOW_ACTIVE:
                 {
-                    if (command.Window.CurrentState == LifecycleState.ACTIVE)
+                    var window = m_windows.GetValue(command.WindowId);
+                    if (window.CurrentState != LifecycleState.INACTIVE)
                     {
                         break;
                     }
-                    m_inactiveWindows.Remove(command.Window.Id);
-                    SetWindowActive(command.Window);
+                    m_inactiveWindows.Remove(command.WindowId);
+                    SetWindowActive(window);
                     break;
                 }
 
-                case Command.SET_INACTIVE_STATE:
+                case Command.SET_WINDOW_INACTIVE:
                 {
-                    if (command.Window.CurrentState == LifecycleState.INACTIVE)
+                    var window = m_windows.GetValue(command.WindowId);
+                    if (window.CurrentState != LifecycleState.ACTIVE)
                     {
                         break;
                     }
-                    m_activeWindows.Remove(command.Window.Id);
-                    SetWindowInActive(command.Window);
+                    m_activeWindows.Remove(command.WindowId);
+                    SetWindowInActive(window);
                     break;
                 }
             }
         }
         
-        private void DismissWindow(int id)
+        private void HandleDismissWindowCommand(byte id)
         {
             if (!m_windows.TryGetValue(id, out var flowWindow))
             {
@@ -266,44 +325,62 @@ namespace FlowState
             m_dismissingWindows.Remove(id);
         }
 
-        private void AddWindow(FlowWindow flowWindow)
+        private void HandleAddWindowCommand(FlowWindow flowWindow)
         {
-            if (m_windows.Contains(state => state == flowWindow))
+            bool found = false;
+            for (int i = 0; i < m_windows.Length; i++)
+            {
+                if (m_windows[i] != flowWindow)
+                {
+                    continue;
+                }
+                
+                found = true;
+                break;
+            }
+
+            if (found)
             {
                 Debug.LogWarning("Trying to add duplicate entry of same FlowWindow in FlowState");
                 return;
             }
-            
+
             flowWindow.Owner = this;
-            flowWindow.CurrentState = LifecycleState.PRESENTING;
-            flowWindow.Id = m_windows.Insert(flowWindow);
+            flowWindow.CurrentState = LifecycleState.INITIALISING;
+            flowWindow.Id = (byte) m_windows.Insert(flowWindow);
             
-            
-            
-            //m_activeWindows.Insert(flowWindow.Id, flowWindow);
-            
-            // add on init to windows
-            m_presentingWindows.Insert(flowWindow.Id, flowWindow);
+            m_initialisingWindows.Insert(flowWindow.Id, flowWindow);
+            flowWindow.OnInit();
         }
 
         private void SetWindowActive(FlowWindow flowWindow)
         {
             Debug.Assert(m_windows.Contains(flowWindow.Id));
             
-            flowWindow.OnActiveStart();
             flowWindow.CurrentState = LifecycleState.ACTIVE;
-
             m_activeWindows.Insert(flowWindow.Id, flowWindow);
+            
+            flowWindow.OnActiveStart();
         }
 
         private void SetWindowInActive(FlowWindow flowWindow)
         {
             Debug.Assert(m_windows.Contains(flowWindow.Id));
             
-            flowWindow.OnInActiveStart();
             flowWindow.CurrentState = LifecycleState.INACTIVE;
-
             m_inactiveWindows.Insert(flowWindow.Id, flowWindow);
+            
+            flowWindow.OnInActiveStart();
+        }
+
+        private void SetWindowPresenting(FlowWindow flowWindow)
+        {
+            Debug.Assert(m_windows.Contains(flowWindow.Id));
+
+            flowWindow.CurrentState = LifecycleState.PRESENTING;
+            m_presentingWindows.Insert(flowWindow.Id, flowWindow);
+
+            flowWindow.OnPresentingStart();
         }
         
         #endregion

@@ -1,6 +1,6 @@
 ﻿namespace FlowState
 {
-    public enum LifecycleState
+    public enum LifecycleState : byte
     {
         DEFAULT,
         INITIALISING,

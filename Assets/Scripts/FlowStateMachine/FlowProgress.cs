@@ -1,6 +1,6 @@
 ﻿namespace FlowState
 {
-    public enum FlowProgress
+    public enum FlowProgress : byte
     {
         PROGRESSING,
         COMPLETE

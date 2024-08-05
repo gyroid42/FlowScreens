@@ -4,11 +4,12 @@
     {
         public LifecycleState CurrentState { get; internal set; }
         public FlowState Owner { get; internal set; }
-        public int Id { get; internal set; }
+        public byte Id { get; internal set; }
         
         public virtual void OnInit() { }
         public virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
         
+        public virtual void OnPresentingStart() { }
         public virtual FlowProgress OnPresentingUpdate()
         {
             return FlowProgress.COMPLETE;
