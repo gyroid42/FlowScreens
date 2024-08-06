@@ -23,8 +23,7 @@ namespace FlowState
         private readonly Queue<FlowState> m_flowStatesToAdd = new Queue<FlowState>();
         private readonly Queue<FlowCommand> m_commandQueue = new Queue<FlowCommand>();
         
-        // TODO: change message to a struct union
-        private readonly Queue<(short windowId, object message)>[] m_pendingMessageQueue = new Queue<(short, object)>[k_stateStackCapacity];
+        private readonly Queue<(short windowId, FlowMessageData message)>[] m_pendingMessageQueue = new Queue<(short, FlowMessageData)>[k_stateStackCapacity];
 
         private FlowState ActiveFlowState => m_stateStack.Count == 0? null : m_stateStack.Peek();
 
@@ -32,13 +31,13 @@ namespace FlowState
         {
             for (int i = 0; i < m_pendingMessageQueue.Length; i++)
             {
-                m_pendingMessageQueue[i] = new Queue<(short, object)>(128);
+                m_pendingMessageQueue[i] = new Queue<(short, FlowMessageData)>(128);
             }
         }
 
         #region Public API
 
-        public void SendMessageToActiveState(object message)
+        public void SendMessageToActiveState(FlowMessageData message)
         {
             if (m_stateStack.Count <= 0)
             {
@@ -49,7 +48,7 @@ namespace FlowState
             m_pendingMessageQueue[m_stateStack.Count].Enqueue((-1, message));
         }
         
-        public void SendMessageToState(byte stateId, short windowId, object message)
+        public void SendMessageToState(byte stateId, short windowId, FlowMessageData message)
         {
             if (stateId >= m_stateStack.Count)
             {

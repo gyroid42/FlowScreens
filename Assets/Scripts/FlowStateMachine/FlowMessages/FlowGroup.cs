@@ -15,7 +15,7 @@ namespace FlowState
             m_flowWindowId = flowWindowId;
         }
 
-        public void SendFlowMessage(object message)
+        public void SendFlowMessage(FlowMessageData message)
         {
             m_fsm.SendMessageToState(m_flowStateId, m_flowWindowId, message);
         }
