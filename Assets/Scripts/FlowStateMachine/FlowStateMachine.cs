@@ -23,7 +23,7 @@ namespace FlowState
         private readonly Queue<FlowState> m_flowStatesToAdd = new Queue<FlowState>();
         private readonly Queue<FlowCommand> m_commandQueue = new Queue<FlowCommand>();
         
-        private readonly Queue<(short windowId, FlowMessageData message)>[] m_pendingMessageQueue = new Queue<(short, FlowMessageData)>[k_stateStackCapacity];
+        private readonly Queue<FlowMessageData>[] m_pendingMessageQueue = new Queue<FlowMessageData>[k_stateStackCapacity];
 
         private FlowState ActiveFlowState => m_stateStack.Count == 0? null : m_stateStack.Peek();
 
@@ -31,7 +31,7 @@ namespace FlowState
         {
             for (int i = 0; i < m_pendingMessageQueue.Length; i++)
             {
-                m_pendingMessageQueue[i] = new Queue<(short, FlowMessageData)>(128);
+                m_pendingMessageQueue[i] = new Queue<FlowMessageData>(128);
             }
         }
 
@@ -45,17 +45,7 @@ namespace FlowState
                 return;
             }
 
-            m_pendingMessageQueue[m_stateStack.Count].Enqueue((-1, message));
-        }
-        
-        public void SendMessageToState(byte stateId, short windowId, FlowMessageData message)
-        {
-            if (stateId >= m_stateStack.Count)
-            {
-                return;
-            }
-
-            m_pendingMessageQueue[stateId].Enqueue((windowId, message));
+            m_pendingMessageQueue[m_stateStack.Count].Enqueue(message);
         }
         
         public void PushState(FlowState flowState)
@@ -87,7 +77,7 @@ namespace FlowState
                 return;
             }
 
-            activeFlowState.OnActiveFixedUpdateInternal();
+            activeFlowState.OnActiveFixedUpdate();
         }
         
         public void LateUpdate()
@@ -99,7 +89,7 @@ namespace FlowState
                 return;
             }
 
-            activeFlowState.OnActiveLateUpdateInternal();
+            activeFlowState.OnActiveLateUpdate();
         }
 
         #endregion
@@ -131,7 +121,7 @@ namespace FlowState
                     if (activeFlowState.OnPresentingUpdate() == FlowProgress.COMPLETE)
                     {
                         activeFlowState.CurrentLifecycleState = LifecycleState.ACTIVE;
-                        activeFlowState.OnActiveStartInternal();
+                        activeFlowState.OnActiveStart();
                     }
                     break;
                 }
@@ -140,19 +130,12 @@ namespace FlowState
                 {
                     while (m_pendingMessageQueue[activeFlowState.Id].Count > 0)
                     {
-                        var (window, message) = m_pendingMessageQueue[activeFlowState.Id].Dequeue();
+                        var message = m_pendingMessageQueue[activeFlowState.Id].Dequeue();
 
-                        if (window == -1)
-                        {
-                            activeFlowState.OnFlowMessageReceived(message);
-                        }
-                        else
-                        {
-                            activeFlowState.SendMessageToWindow(window, message);
-                        }
+                        activeFlowState.OnFlowMessageReceived(message);
                     }
                     
-                    activeFlowState.OnActiveUpdateInternal();
+                    activeFlowState.OnActiveUpdate();
                     
                     ProcessNextFlowCommand(m_stateStack, m_commandQueue, activeFlowState);
                     break;
@@ -160,7 +143,7 @@ namespace FlowState
 
                 case LifecycleState.DISMISSING:
                 {
-                    if (activeFlowState.OnDismissingUpdateInternal() == FlowProgress.COMPLETE)
+                    if (activeFlowState.OnDismissingUpdate() == FlowProgress.COMPLETE)
                     {
                         m_stateStack.Pop();
                         activeFlowState.OnDismissed();
@@ -171,7 +154,7 @@ namespace FlowState
                         {
                             activeFlowState = m_stateStack.Peek();
                             activeFlowState.CurrentLifecycleState = LifecycleState.ACTIVE;
-                            activeFlowState.OnActiveStartInternal();
+                            activeFlowState.OnActiveStart();
                         }
                         else if (m_commandQueue.Count > 0)
                         {
@@ -224,7 +207,7 @@ namespace FlowState
                     }
 
                     activeFlowState.CurrentLifecycleState = LifecycleState.DISMISSING;
-                    activeFlowState.OnDismissingStartInternal();
+                    activeFlowState.OnDismissingStart();
                     break;
                 }
             }
