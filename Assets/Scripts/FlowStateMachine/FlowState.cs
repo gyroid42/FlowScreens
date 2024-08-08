@@ -80,7 +80,7 @@ namespace FlowState
         
         #region Internal API
         
-        internal void SendMessageToWindow(short windowId, object message)
+        internal void SendMessageToWindow(short windowId, FlowMessageData message)
         {
             if (m_windows.TryGetValue(windowId, out var window))
             {
