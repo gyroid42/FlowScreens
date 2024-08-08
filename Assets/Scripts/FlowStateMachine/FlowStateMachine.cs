@@ -12,16 +12,11 @@ namespace FlowState
             PUSH_STATE,
             POP_STATE
         }
-
-        private struct FlowCommand
-        {
-            public Command Command;
-        }
         
         private readonly Stack<FlowState> m_stateStack = new Stack<FlowState>(k_stateStackCapacity);
 
         private readonly Queue<FlowState> m_flowStatesToAdd = new Queue<FlowState>();
-        private readonly Queue<FlowCommand> m_commandQueue = new Queue<FlowCommand>();
+        private readonly Queue<Command> m_commandQueue = new Queue<Command>();
         
         private readonly Queue<FlowMessageData>[] m_pendingMessageQueue = new Queue<FlowMessageData>[k_stateStackCapacity];
 
@@ -37,6 +32,16 @@ namespace FlowState
 
         #region Public API
 
+        public void SendMessageToState(int stateId, FlowMessageData message)
+        {
+            if (stateId >= m_stateStack.Count)
+            {
+                return;
+            }
+
+            m_pendingMessageQueue[stateId].Enqueue(message);
+        }
+        
         public void SendMessageToActiveState(FlowMessageData message)
         {
             if (m_stateStack.Count <= 0)
@@ -51,15 +56,12 @@ namespace FlowState
         public void PushState(FlowState flowState)
         {
             m_flowStatesToAdd.Enqueue(flowState);
-            m_commandQueue.Enqueue(new FlowCommand
-            {
-                Command = Command.PUSH_STATE, 
-            });
+            m_commandQueue.Enqueue(Command.PUSH_STATE);
         }
 
         public void PopState()
         {
-            m_commandQueue.Enqueue(new FlowCommand { Command = Command.POP_STATE });
+            m_commandQueue.Enqueue(Command.POP_STATE);
         }
 
         public void Update()
@@ -182,10 +184,10 @@ namespace FlowState
             }
         }
         
-        private void ProcessNextFlowCommand(in Stack<FlowState> stateStack, in Queue<FlowCommand> commandQueue, in FlowState activeFlowState)
+        private void ProcessNextFlowCommand(in Stack<FlowState> stateStack, in Queue<Command> commandQueue, in FlowState activeFlowState)
         {
-            FlowCommand command = commandQueue.Dequeue();
-            switch (command.Command)
+            var command = commandQueue.Dequeue();
+            switch (command)
             {
                 case Command.PUSH_STATE:
                 {
