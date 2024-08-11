@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Collections
 {
-    public class SparseArray<T> : IEnumerable<T>
+    public struct SparseArray<T>
     {
         public int Length { get; private set; }
 
@@ -14,10 +13,12 @@ namespace Collections
         private readonly int[] m_indexToKey;
         private readonly T[] m_array;
 
-        private int m_lastKeyIndex = 0;
+        private int m_lastKeyIndex;
 
         public SparseArray(int capacity)
         {
+            Length = 0;
+            m_lastKeyIndex = 0;
             m_keyToIndex = new int[capacity];
             m_indexToKey = new int[capacity];
             m_array = new T[capacity];
@@ -132,17 +133,6 @@ namespace Collections
             }
 
             return false;
-        }
-        
-        public IEnumerator<T> GetEnumerator()
-        {
-            for(int i = 0; i < Length; ++i)
-                yield return m_array[i];
-        }
-        
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
     }
 }
