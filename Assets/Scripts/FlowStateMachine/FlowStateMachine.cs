@@ -1,12 +1,14 @@
 
 using System.Collections.Generic;
+using Collections;
 using UnityEngine;
 
 namespace FlowState
 {
     public class FlowStateMachine
     {
-        private const int k_stateStackCapacity = 32;
+        private const byte k_stateStackCapacity = 32;
+        private const short k_messageQueueCapacity = 32;
         private enum Command : byte
         {
             PUSH_STATE,
@@ -23,17 +25,9 @@ namespace FlowState
         private readonly Queue<FlowState> m_flowStatesToAdd = new Queue<FlowState>();
         private readonly Queue<FlowCommand> m_commandQueue = new Queue<FlowCommand>();
         
-        private readonly Queue<(short windowId, FlowMessageData message)>[] m_pendingMessageQueue = new Queue<(short, FlowMessageData)>[k_stateStackCapacity];
+        private readonly QueueArray<(short windowId, FlowMessageData message)> m_pendingMessageQueue = new QueueArray<(short, FlowMessageData)>(k_stateStackCapacity, k_messageQueueCapacity);
 
         private FlowState ActiveFlowState => m_stateStack.Count == 0? null : m_stateStack.Peek();
-
-        public FlowStateMachine()
-        {
-            for (int i = 0; i < m_pendingMessageQueue.Length; i++)
-            {
-                m_pendingMessageQueue[i] = new Queue<(short, FlowMessageData)>(128);
-            }
-        }
 
         #region Public API
 
@@ -45,7 +39,7 @@ namespace FlowState
                 return;
             }
 
-            m_pendingMessageQueue[m_stateStack.Count].Enqueue((-1, message));
+            m_pendingMessageQueue.Enqueue(m_stateStack.Count -1, (-1, message));
         }
         
         public void SendMessageToState(byte stateId, short windowId, FlowMessageData message)
@@ -55,7 +49,7 @@ namespace FlowState
                 return;
             }
 
-            m_pendingMessageQueue[stateId].Enqueue((windowId, message));
+            m_pendingMessageQueue.Enqueue(stateId, (windowId, message));
         }
         
         public void PushState(FlowState flowState)
@@ -138,9 +132,9 @@ namespace FlowState
 
                 case LifecycleState.ACTIVE:
                 {
-                    while (m_pendingMessageQueue[activeFlowState.Id].Count > 0)
+                    while (m_pendingMessageQueue.Count(activeFlowState.Id) > 0)
                     {
-                        var (window, message) = m_pendingMessageQueue[activeFlowState.Id].Dequeue();
+                        var (window, message) = m_pendingMessageQueue.Dequeue(activeFlowState.Id);
 
                         if (window == -1)
                         {
@@ -165,7 +159,7 @@ namespace FlowState
                         m_stateStack.Pop();
                         activeFlowState.OnDismissed();
                         activeFlowState.CurrentLifecycleState = LifecycleState.DISMISSED;
-                        m_pendingMessageQueue[activeFlowState.Id].Clear();
+                        m_pendingMessageQueue.Clear(activeFlowState.Id);
 
                         if (m_stateStack.Count > 0)
                         {
