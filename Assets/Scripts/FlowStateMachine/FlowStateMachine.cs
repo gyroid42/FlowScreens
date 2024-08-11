@@ -14,16 +14,11 @@ namespace FlowState
             PUSH_STATE,
             POP_STATE
         }
-
-        private struct FlowCommand
-        {
-            public Command Command;
-        }
         
         private readonly Stack<FlowState> m_stateStack = new Stack<FlowState>(k_stateStackCapacity);
 
         private readonly Queue<FlowState> m_flowStatesToAdd = new Queue<FlowState>();
-        private readonly Queue<FlowCommand> m_commandQueue = new Queue<FlowCommand>();
+        private readonly Queue<Command> m_commandQueue = new Queue<Command>();
         
         private readonly QueueArray<(short windowId, FlowMessageData message)> m_pendingMessageQueue = new QueueArray<(short, FlowMessageData)>(k_stateStackCapacity, k_messageQueueCapacity);
 
@@ -55,15 +50,12 @@ namespace FlowState
         public void PushState(FlowState flowState)
         {
             m_flowStatesToAdd.Enqueue(flowState);
-            m_commandQueue.Enqueue(new FlowCommand
-            {
-                Command = Command.PUSH_STATE, 
-            });
+            m_commandQueue.Enqueue(Command.PUSH_STATE);
         }
 
         public void PopState()
         {
-            m_commandQueue.Enqueue(new FlowCommand { Command = Command.POP_STATE });
+            m_commandQueue.Enqueue(Command.POP_STATE);
         }
 
         public void Update()
@@ -193,10 +185,10 @@ namespace FlowState
             }
         }
         
-        private void ProcessNextFlowCommand(in Stack<FlowState> stateStack, in Queue<FlowCommand> commandQueue, in FlowState activeFlowState)
+        private void ProcessNextFlowCommand(in Stack<FlowState> stateStack, in Queue<Command> commandQueue, in FlowState activeFlowState)
         {
-            FlowCommand command = commandQueue.Dequeue();
-            switch (command.Command)
+            Command command = commandQueue.Dequeue();
+            switch (command)
             {
                 case Command.PUSH_STATE:
                 {
