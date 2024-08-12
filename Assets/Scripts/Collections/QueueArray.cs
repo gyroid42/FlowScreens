@@ -7,6 +7,7 @@ namespace Collections
     {
         public readonly int Length;
         private readonly short m_queueCapacity;
+        private readonly short m_queueSize;
         private readonly byte[] m_data;
 
         public QueueArray(in int arrayLength, in short capacity)
@@ -14,14 +15,14 @@ namespace Collections
             // each item is (count + head + tail + padding + itemArray)
             Length = arrayLength;
             m_queueCapacity = capacity;
-            int queueSize = 4 * sizeof(short) + sizeof(T) * capacity;
-            m_data = new byte[arrayLength * queueSize];
+            m_queueSize = (short)(4 * sizeof(short) + sizeof(T) * capacity);
+            m_data = new byte[arrayLength * m_queueSize];
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte* GetQueuePointer(in int queueIndex)
         {
-            fixed (byte* p = &m_data[queueIndex])
+            fixed (byte* p = &m_data[queueIndex * m_queueSize])
             {
                 return p;
             }
