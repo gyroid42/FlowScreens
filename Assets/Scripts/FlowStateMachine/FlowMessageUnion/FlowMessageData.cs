@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace FlowState
+namespace FlowStateMachine.FlowMessageUnion
 {
     [StructLayout(LayoutKind.Explicit)]
     public unsafe partial struct FlowMessageData

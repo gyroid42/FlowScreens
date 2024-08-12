@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace FlowState
+namespace FlowStateMachine.FlowMessageUnion
 {
     [Serializable]
     public struct FlowMessageDataExample2

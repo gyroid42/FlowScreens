@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using FlowStateMachine.FlowMessageUnion;
+using UnityEngine;
 
-namespace FlowState
+namespace FlowStateMachine.FlowMessages
 {
     public sealed class FlowMessageExample2 : FlowMessage
     {

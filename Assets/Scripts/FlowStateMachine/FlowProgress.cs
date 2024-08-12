@@ -1,4 +1,4 @@
-﻿namespace FlowState
+﻿namespace FlowStateMachine
 {
     public enum FlowProgress : byte
     {

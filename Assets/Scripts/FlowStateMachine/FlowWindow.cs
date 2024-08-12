@@ -1,4 +1,6 @@
-﻿namespace FlowState
+﻿using FlowStateMachine.FlowMessageUnion;
+
+namespace FlowStateMachine
 {
     public abstract class FlowWindow
     {

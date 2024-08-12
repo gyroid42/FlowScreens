@@ -1,8 +1,8 @@
-
 using Collections;
+using FlowStateMachine.FlowMessageUnion;
 using UnityEngine;
 
-namespace FlowState
+namespace FlowStateMachine
 {
     public class FlowStateMachine
     {

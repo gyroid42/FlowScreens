@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using FlowStateMachine.FlowMessageUnion;
+using UnityEngine;
 
-namespace FlowState
+namespace FlowStateMachine.FlowMessages
 {
     public abstract class FlowMessage : MonoBehaviour
     {

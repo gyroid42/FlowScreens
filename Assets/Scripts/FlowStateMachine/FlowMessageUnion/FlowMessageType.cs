@@ -1,4 +1,4 @@
-﻿namespace FlowState
+﻿namespace FlowStateMachine.FlowMessageUnion
 {
     public enum FlowMessageType
     {
