@@ -106,6 +106,7 @@ namespace FlowState
                 {
                     if (activeFlowState.OnInitUpdate() == FlowProgress.COMPLETE)
                     {
+                        activeFlowState.LinkFlowGroups();
                         activeFlowState.CurrentLifecycleState = LifecycleState.PRESENTING;
                         activeFlowState.OnPresentingStart();
                     }

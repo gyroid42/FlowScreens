@@ -8,6 +8,7 @@
         
         public virtual void OnInit() { }
         public virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
+        public virtual void LinkFlowGroups() { }
         
         public virtual void OnPresentingStart() { }
         public virtual FlowProgress OnPresentingUpdate()
@@ -28,6 +29,6 @@
         public virtual void OnDismissingStart() { }
         public virtual void OnDismissed() { }
         public virtual void OnInActiveStart() { }
-        public virtual void OnFlowMessageReceived(object message) { }
+        public virtual void OnFlowMessageReceived(in FlowMessageData message) { }
     }
 }

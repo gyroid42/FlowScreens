@@ -112,6 +112,7 @@ namespace FlowState
                 FlowProgress progress = window.OnInitUpdate();
                 if (progress == FlowProgress.COMPLETE)
                 {
+                    window.LinkFlowGroups();
                     m_initialisingWindows.Remove(window.Id);
                     SetWindowPresenting(window);
                 }
@@ -210,11 +211,11 @@ namespace FlowState
         
         #region Virtual Methods
 
-        internal virtual void OnFlowMessageReceived(object message) { }
+        internal virtual void OnFlowMessageReceived(in FlowMessageData message) { }
 
         internal virtual void OnInit() {  }
         internal virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
-        
+        internal virtual void LinkFlowGroups() { }
         
         internal virtual void OnPresentingStart() { }
         internal virtual FlowProgress OnPresentingUpdate() => FlowProgress.COMPLETE;
