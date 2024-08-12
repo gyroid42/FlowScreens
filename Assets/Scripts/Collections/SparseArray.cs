@@ -5,19 +5,19 @@ namespace Collections
 {
     public struct SparseArray<T>
     {
-        public int Length { get; private set; }
-
+        public int Length => m_length;
         public int Capacity => m_array.Length;
 
         private readonly int[] m_keyToIndex;
         private readonly int[] m_indexToKey;
         private readonly T[] m_array;
 
+        private int m_length;
         private int m_lastKeyIndex;
 
         public SparseArray(int capacity)
         {
-            Length = 0;
+            m_length = 0;
             m_lastKeyIndex = 0;
             m_keyToIndex = new int[capacity];
             m_indexToKey = new int[capacity];
@@ -29,16 +29,12 @@ namespace Collections
             }
         }
         
-        public T this[int index]
-        {
-            get => m_array[index];
-            set => m_array[index] = value;
-        }
+        public ref T this[int index] => ref m_array[index];
 
-        public T GetValue(int key)
+        public ref T GetValue(int key)
         {
             int index = m_keyToIndex[key];
-            return m_array[index];
+            return ref m_array[index];
         }
 
         public bool TryGetValue(int key, out T value)
@@ -67,15 +63,15 @@ namespace Collections
                 return;
             }
 
-            m_keyToIndex[key] = Length;
-            m_indexToKey[Length] = key;
-            m_array[Length] = value;
-            Length++;
+            m_keyToIndex[key] = m_length;
+            m_indexToKey[m_length] = key;
+            m_array[m_length] = value;
+            m_length++;
         }
 
         public int Insert(in T value)
         {
-            if (Length == Capacity)
+            if (m_length == Capacity)
             {
                 throw new OutOfMemoryException("array at capacity");
             }
@@ -86,10 +82,10 @@ namespace Collections
                 m_lastKeyIndex %= m_keyToIndex.Length;
             }
 
-            m_keyToIndex[m_lastKeyIndex] = Length;
-            m_indexToKey[Length] = m_lastKeyIndex;
-            m_array[Length] = value;
-            Length++;
+            m_keyToIndex[m_lastKeyIndex] = m_length;
+            m_indexToKey[m_length] = m_lastKeyIndex;
+            m_array[m_length] = value;
+            m_length++;
 
             return m_lastKeyIndex;
         }
@@ -103,16 +99,16 @@ namespace Collections
 
             int index = m_keyToIndex[key];
             
-            m_array[index] = m_array[Length - 1];
-            m_array[Length - 1] = default;
+            m_array[index] = m_array[m_length - 1];
+            m_array[m_length - 1] = default;
 
-            int movedKey = m_indexToKey[Length - 1];
+            int movedKey = m_indexToKey[m_length - 1];
             m_keyToIndex[movedKey] = index;
 
             m_keyToIndex[key] = -1;
             m_indexToKey[index] = movedKey;
 
-            Length--;
+            m_length--;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +120,7 @@ namespace Collections
         
         public bool Contains(Predicate<T> predicate)
         {
-            for (int index = 0; index < Length; index++)
+            for (int index = 0; index < m_length; index++)
             {
                 if (predicate(m_array[index]))
                 {

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Collections;
+﻿using Collections;
 using UnityEngine;
 
 namespace FlowState
@@ -7,6 +6,7 @@ namespace FlowState
     public abstract class FlowState
     {
         private const int k_windowCapacity = 20;
+        private const byte k_commandCapacity = 32;
         
         private enum Command : byte
         {
@@ -22,15 +22,15 @@ namespace FlowState
             public byte WindowId;
         }
         
-        private readonly SparseArray<FlowWindow> m_windows = new SparseArray<FlowWindow>(k_windowCapacity);
-        private readonly SparseArray<FlowWindow> m_activeWindows = new SparseArray<FlowWindow>(k_windowCapacity);
-        private readonly SparseArray<FlowWindow> m_inactiveWindows = new SparseArray<FlowWindow>(k_windowCapacity);
-        private readonly SparseArray<FlowWindow> m_dismissingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
-        private readonly SparseArray<FlowWindow> m_presentingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
-        private readonly SparseArray<FlowWindow> m_initialisingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
+        private SparseArray<FlowWindow> m_windows = new SparseArray<FlowWindow>(k_windowCapacity);
+        private SparseArray<FlowWindow> m_activeWindows = new SparseArray<FlowWindow>(k_windowCapacity);
+        private SparseArray<FlowWindow> m_inactiveWindows = new SparseArray<FlowWindow>(k_windowCapacity);
+        private SparseArray<FlowWindow> m_dismissingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
+        private SparseArray<FlowWindow> m_presentingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
+        private SparseArray<FlowWindow> m_initialisingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
 
-        private readonly Queue<FlowWindow> m_windowsToAdd = new Queue<FlowWindow>();
-        private readonly Queue<FlowWindowCommand> m_commandQueue = new Queue<FlowWindowCommand>();
+        private FixedQueueManaged<FlowWindow> m_windowsToAdd = new FixedQueueManaged<FlowWindow>(k_commandCapacity);
+        private FixedQueue<FlowWindowCommand> m_commandQueue = new FixedQueue<FlowWindowCommand>(k_commandCapacity);
         
         public FlowStateMachine OwningFSM { get; internal set; }
         public LifecycleState CurrentLifecycleState { get; internal set; }

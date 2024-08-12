@@ -11,7 +11,7 @@ namespace Collections
 
         public QueueArray(in int arrayLength, in short capacity)
         {
-            // each item is (count + startIndex + endIndex + padding + itemArray)
+            // each item is (count + head + tail + padding + itemArray)
             Length = arrayLength;
             m_queueCapacity = capacity;
             int queueSize = 4 * sizeof(short) + sizeof(T) * capacity;
@@ -28,25 +28,25 @@ namespace Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public short Count(in int queueIndex)
+        public short GetQueueCount(in int queueIndex)
         {
             return *(short*)GetQueuePointer(queueIndex);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private short* Count(in byte* queuePointer)
+        private short* GetQueueCount(in byte* queuePointer)
         {
             return (short*)queuePointer;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private short* StartIndex(in byte* queuePointer)
+        private short* GetHead(in byte* queuePointer)
         {
             return (short*)(queuePointer + sizeof(short));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private short* EndIndex(in byte* queuePointer)
+        private short* GetTail(in byte* queuePointer)
         {
             return (short*)(queuePointer + 2 * sizeof(short));
         }
@@ -61,8 +61,9 @@ namespace Collections
         {
             var queuePointer = GetQueuePointer(queueIndex);
 
-            *Count(queuePointer) = 0;
-            *StartIndex(queuePointer) = *EndIndex(queuePointer);
+            *GetQueueCount(queuePointer) = 0;
+            *GetHead(queuePointer) = 0;
+            *GetTail(queuePointer) = 0;
         }
 
         public void ClearAll()
@@ -77,24 +78,24 @@ namespace Collections
         {
             var queuePointer = GetQueuePointer(queueIndex);
 
-            ++*Count(queuePointer);
-            var endIndex = EndIndex(queuePointer);
+            ++*GetQueueCount(queuePointer);
+            var tail = GetTail(queuePointer);
 
-            *GetItem(queuePointer, *endIndex) = item;
-            ++*endIndex;
-            *endIndex %= m_queueCapacity;
+            *GetItem(queuePointer, *tail) = item;
+            ++*tail;
+            *tail %= m_queueCapacity;
         }
 
         public T Dequeue(in int queueIndex)
         {
             var queuePointer = GetQueuePointer(queueIndex);
 
-            --*Count(queuePointer);
-            var startIndex = StartIndex(queuePointer);
-            var item = GetItem(queuePointer, *startIndex);
+            --*GetQueueCount(queuePointer);
+            var head = GetHead(queuePointer);
+            var item = GetItem(queuePointer, *head);
 
-            ++*startIndex;
-            *startIndex %= m_queueCapacity;
+            ++*head;
+            *head %= m_queueCapacity;
             return *item;
         }
 
@@ -102,8 +103,8 @@ namespace Collections
         {
             var queuePointer = GetQueuePointer(queueIndex);
 
-            var startIndex = *StartIndex(queuePointer);
-            return ref *GetItem(queuePointer, startIndex);
+            var head = *GetHead(queuePointer);
+            return ref *GetItem(queuePointer, head);
         }
     }
 }

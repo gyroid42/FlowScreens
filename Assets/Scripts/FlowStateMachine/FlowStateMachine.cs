@@ -1,5 +1,4 @@
 
-using System.Collections.Generic;
 using Collections;
 using UnityEngine;
 
@@ -8,6 +7,7 @@ namespace FlowState
     public class FlowStateMachine
     {
         private const byte k_stateStackCapacity = 32;
+        private const byte k_commandCapacity = 32;
         private const short k_messageQueueCapacity = 32;
         private enum Command : byte
         {
@@ -15,10 +15,10 @@ namespace FlowState
             POP_STATE
         }
         
-        private readonly Stack<FlowState> m_stateStack = new Stack<FlowState>(k_stateStackCapacity);
+        private FixedStackManaged<FlowState> m_stateStack = new FixedStackManaged<FlowState>(k_stateStackCapacity);
 
-        private readonly Queue<FlowState> m_flowStatesToAdd = new Queue<FlowState>();
-        private readonly Queue<Command> m_commandQueue = new Queue<Command>();
+        private FixedQueueManaged<FlowState> m_flowStatesToAdd = new FixedQueueManaged<FlowState>(k_commandCapacity);
+        private FixedQueue<Command> m_commandQueue = new FixedQueue<Command>(k_commandCapacity);
         
         private readonly QueueArray<(short windowId, FlowMessageData message)> m_pendingMessageQueue = new QueueArray<(short, FlowMessageData)>(k_stateStackCapacity, k_messageQueueCapacity);
 
@@ -124,7 +124,7 @@ namespace FlowState
 
                 case LifecycleState.ACTIVE:
                 {
-                    while (m_pendingMessageQueue.Count(activeFlowState.Id) > 0)
+                    while (m_pendingMessageQueue.GetQueueCount(activeFlowState.Id) > 0)
                     {
                         var (window, message) = m_pendingMessageQueue.Dequeue(activeFlowState.Id);
 
@@ -140,7 +140,7 @@ namespace FlowState
                     
                     activeFlowState.OnActiveUpdateInternal();
                     
-                    ProcessNextFlowCommand(m_stateStack, m_commandQueue, activeFlowState);
+                    ProcessNextFlowCommand(activeFlowState);
                     break;
                 }
 
@@ -161,7 +161,7 @@ namespace FlowState
                         }
                         else if (m_commandQueue.Count > 0)
                         {
-                            ProcessNextFlowCommand(m_stateStack, m_commandQueue, null);
+                            ProcessNextFlowCommand(null);
                         }
                     }
                     break;
@@ -171,23 +171,15 @@ namespace FlowState
 
         private void UpdateInActive()
         {
-            int i = 0;
-            foreach (var state in m_stateStack)
+            for (int i = 0; i < m_stateStack.Count-1; i++)
             {
-                if (i >= m_stateStack.Count-1)
-                {
-                    break;
-                }
-                
-                state.OnInActiveUpdate();
-
-                i++;
+                m_stateStack[i].OnInActiveUpdate();
             }
         }
         
-        private void ProcessNextFlowCommand(in Stack<FlowState> stateStack, in Queue<Command> commandQueue, in FlowState activeFlowState)
+        private void ProcessNextFlowCommand(in FlowState activeFlowState)
         {
-            Command command = commandQueue.Dequeue();
+            Command command = m_commandQueue.Dequeue();
             switch (command)
             {
                 case Command.PUSH_STATE:
@@ -198,7 +190,7 @@ namespace FlowState
                         activeFlowState.OnInActiveStart();
                     }
 
-                    PushStateToStack(stateStack, m_flowStatesToAdd.Dequeue());
+                    PushStateToStack(m_flowStatesToAdd.Dequeue());
                     break;
                 }
                     
@@ -216,13 +208,13 @@ namespace FlowState
             }
         }
 
-        private void PushStateToStack(in Stack<FlowState> stateStack, in FlowState flowState)
+        private void PushStateToStack(in FlowState flowState)
         {
             flowState.CurrentLifecycleState = LifecycleState.INITIALISING;
             flowState.OwningFSM = this;
-            flowState.Id = (byte) stateStack.Count;
+            flowState.Id = (byte) m_stateStack.Count;
 
-            stateStack.Push(flowState);
+            m_stateStack.Push(flowState);
             
             flowState.OnInit();
         }
