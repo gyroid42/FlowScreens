@@ -194,7 +194,6 @@ namespace FlowStates
                         activeFlowState.OnInActiveStart();
                     }
 
-                    Debug.Log("pushing state");
                     PushStateToStack(m_flowStatesToAdd.Dequeue());
                     break;
                 }

@@ -23,6 +23,12 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 102900000, guid: cacd344612eb6c440b8a2373430caeac, type: 3}
     m_TargetAsset: {fileID: 102900000, guid: cacd344612eb6c440b8a2373430caeac, type: 3}
+  - m_GUID: 6478b4c7c9ed4224188fb68f5580271d
+    m_Address: UIGame.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 7956960457063177270, guid: 6478b4c7c9ed4224188fb68f5580271d, type: 3}
+    m_TargetAsset: {fileID: 7956960457063177270, guid: 6478b4c7c9ed4224188fb68f5580271d, type: 3}
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 17d07ecd19c5121428d569a3614ababa, type: 2}
   m_SchemaSet:
