@@ -57,6 +57,18 @@ namespace Example
                     HandleMenuNavigationMessage(message.MenuNavigation);
                     break;
                 }
+
+                case FlowMessageType.TRY_DO_ACTION:
+                {
+                    OwningFSM.PushState(new FSConfirmPopup(Context, Id));
+                    break;
+                }
+
+                case FlowMessageType.CONFIRM_POPUP:
+                {
+                    Debug.Log($"received confirm popup, confirmation = {message.ConfirmPopup.confirm}");
+                    break;
+                }
             }
         }
         

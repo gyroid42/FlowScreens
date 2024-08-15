@@ -7,9 +7,9 @@ namespace FlowStates.FlowMessages
     {
         private FlowStateMachine m_fsm;
         private byte m_flowStateId;
-        private short m_flowWindowId;
+        private byte m_flowWindowId;
 
-        public void Link(FlowStateMachine fsm, byte flowStateId, short flowWindowId = -1)
+        public void Link(FlowStateMachine fsm, byte flowStateId, byte flowWindowId = byte.MaxValue)
         {
             m_fsm = fsm;
             m_flowStateId = flowStateId;
@@ -18,7 +18,7 @@ namespace FlowStates.FlowMessages
 
         public void SendFlowMessage(FlowMessageData message)
         {
-            m_fsm.SendMessageToState(m_flowStateId, m_flowWindowId, message);
+            m_fsm.SendMessageToStateIfActive(message, m_flowStateId, m_flowWindowId);
         }
     }
 }

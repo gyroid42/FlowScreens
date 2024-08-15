@@ -20,7 +20,7 @@ namespace FlowStates
         private FixedQueueManaged<FlowState> m_flowStatesToAdd = new FixedQueueManaged<FlowState>(k_commandCapacity);
         private FixedQueue<Command> m_commandQueue = new FixedQueue<Command>(k_commandCapacity);
         
-        private readonly QueueArray<(short windowId, FlowMessageData message)> m_pendingMessageQueue = new QueueArray<(short, FlowMessageData)>(k_stateStackCapacity, k_messageQueueCapacity);
+        private readonly QueueArray<(FlowMessageData message, byte windowId)> m_pendingMessageQueue = new QueueArray<(FlowMessageData, byte)>(k_stateStackCapacity, k_messageQueueCapacity);
 
         private FlowState ActiveFlowState => m_stateStack.Count == 0? null : m_stateStack.Peek();
 
@@ -34,17 +34,27 @@ namespace FlowStates
                 return;
             }
 
-            m_pendingMessageQueue.Enqueue(m_stateStack.Count -1, (-1, message));
+            m_pendingMessageQueue.Enqueue(m_stateStack.Count -1, (message, byte.MaxValue));
+        }
+
+        public void SendMessageToStateIfActive(FlowMessageData message, byte stateId, byte windowId = byte.MaxValue)
+        {
+            if (stateId != m_stateStack.Count - 1)
+            {
+                return;
+            }
+
+            m_pendingMessageQueue.Enqueue(stateId, (message, windowId));
         }
         
-        public void SendMessageToState(byte stateId, short windowId, FlowMessageData message)
+        public void SendMessageToState(FlowMessageData message, byte stateId, byte windowId = byte.MaxValue)
         {
             if (stateId >= m_stateStack.Count)
             {
                 return;
             }
 
-            m_pendingMessageQueue.Enqueue(stateId, (windowId, message));
+            m_pendingMessageQueue.Enqueue(stateId, (message, windowId));
         }
         
         public void PushState(FlowState flowState)
@@ -129,15 +139,15 @@ namespace FlowStates
                 {
                     while (m_pendingMessageQueue.GetQueueCount(activeFlowState.Id) > 0)
                     {
-                        var (window, message) = m_pendingMessageQueue.Dequeue(activeFlowState.Id);
+                        var (message, windowId) = m_pendingMessageQueue.Dequeue(activeFlowState.Id);
 
-                        if (window == -1)
+                        if (windowId == byte.MaxValue)
                         {
                             activeFlowState.OnFlowMessageReceived(message);
                         }
                         else
                         {
-                            activeFlowState.SendMessageToWindow(window, message);
+                            activeFlowState.SendMessageToWindow(message, windowId);
                         }
                     }
                     

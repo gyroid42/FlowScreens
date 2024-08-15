@@ -5,6 +5,7 @@
         MENU_NAVIGATION,
         CONFIRM_POPUP,
         ALPHA_SELECT,
-        SET_ANIMATION_SPEED
+        SET_ANIMATION_SPEED,
+        TRY_DO_ACTION
     }
 }
