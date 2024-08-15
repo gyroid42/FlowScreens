@@ -29,6 +29,12 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
+  - m_GUID: 951700365d3cbfd4bbdb7cb6329b2987
+    m_Address: UIScreen1.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 7123082411321610236, guid: 951700365d3cbfd4bbdb7cb6329b2987, type: 3}
+    m_TargetAsset: {fileID: 7123082411321610236, guid: 951700365d3cbfd4bbdb7cb6329b2987, type: 3}
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 17d07ecd19c5121428d569a3614ababa, type: 2}
   m_SchemaSet:

@@ -6,21 +6,20 @@ using UnityEngine.AddressableAssets;
 
 namespace Example
 {
-    public class FSMainMenu : FlowState
+    public class FSScreen1 : FlowState
     {
-        private const string k_uiGameAddress = "UIMainMenu.prefab";
-        
-        private Task<GameObject> m_initTask;
-        private UIMainMenu m_ui;
-        private float m_uiAnimationSpeed = 1f;
+        private const string k_uiPrefabAddress = "UIScreen1.prefab";
 
-        public FSMainMenu(FlowStateContext context) : base(context) { }
+        private Task<GameObject> m_initTask;
+        private UIScreen1 m_ui;
         
+        public FSScreen1(FlowStateContext context) : base(context) { }
+
         internal override void OnInit()
         {
             m_initTask = LoadAssets();
         }
-
+        
         internal override FlowProgress OnInitUpdate()
         {
             if (!m_initTask.IsCompleted)
@@ -29,16 +28,16 @@ namespace Example
             }
 
             var uiGo = Object.Instantiate(m_initTask.Result, Context.CanvasTransform);
-            m_ui = uiGo.GetComponentInChildren<UIMainMenu>();
+            m_ui = uiGo.GetComponentInChildren<UIScreen1>();
 
             m_initTask = null;
             
             return FlowProgress.COMPLETE;
         }
-
+        
         private async Task<GameObject> LoadAssets()
         {
-            var uiLoadHandle = Addressables.LoadAssetAsync<GameObject>(k_uiGameAddress);
+            var uiLoadHandle = Addressables.LoadAssetAsync<GameObject>(k_uiPrefabAddress);
             await uiLoadHandle.Task;
 
             return uiLoadHandle.Result;
@@ -48,7 +47,7 @@ namespace Example
         {
             m_ui.flowGroup.Link(OwningFSM, Id);
         }
-
+        
         internal override void OnFlowMessageReceived(in FlowMessageData message)
         {
             switch (message.Field)
@@ -58,47 +57,25 @@ namespace Example
                     HandleMenuNavigationMessage(message.MenuNavigation);
                     break;
                 }
-
-                case FlowMessageType.SET_ANIMATION_SPEED:
-                {
-                    HandleSetAnimationSpeedMessage(message.SetAnimationSpeed);
-                    break;
-                }
             }
         }
-
-        protected override void OnActiveUpdate()
-        {
-            m_ui.UpdateUI(Time.deltaTime * m_uiAnimationSpeed);
-        }
-
+        
         private void HandleMenuNavigationMessage(in FlowMessageDataMenuNavigation message)
         {
             switch (message.navigation)
             {
-                case MenuNavigation.SCREEN_1:
+                case MenuNavigation.MAIN_MENU:
                 {
-                    // push screen 1
-                    break;
-                }
-
-                case MenuNavigation.SCREEN_2:
-                {
-                    // push screen 2
-                    break;
-                }
-
-                case MenuNavigation.BACK:
-                {
-                    // close game
+                    OwningFSM.PopState();
+                    OwningFSM.PushState(new FSMainMenu(Context));
                     break;
                 }
             }
         }
-
-        private void HandleSetAnimationSpeedMessage(in FlowMessageDataSetAnimationSpeed message)
+        
+        internal override void OnDismissed()
         {
-            m_uiAnimationSpeed = message.speed;
+            Object.Destroy(m_ui.gameObject);
         }
     }
 }
