@@ -11,7 +11,10 @@ namespace Example
         
         private void Start()
         {
-            m_flowStateMachine.PushState(new FSGame(uiCanvas));
+            m_flowStateMachine.PushState(new FSGame(new FlowStateContext
+            {
+                CanvasTransform = uiCanvas
+            }));
         }
 
         private void Update()

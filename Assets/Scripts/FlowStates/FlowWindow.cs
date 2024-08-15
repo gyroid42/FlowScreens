@@ -7,7 +7,13 @@ namespace FlowStates
         public LifecycleState CurrentState { get; internal set; }
         public FlowStateMachine OwningFSM { get; internal set; }
         public FlowState Owner { get; internal set; }
+        public FlowWindowContext Context { get; internal set; }
         public byte Id { get; internal set; }
+
+        protected FlowWindow(FlowWindowContext context)
+        {
+            Context = context;
+        }
         
         public virtual void OnInit() { }
         public virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;

@@ -34,8 +34,14 @@ namespace FlowStates
         private FixedQueue<FlowWindowCommand> m_commandQueue = new FixedQueue<FlowWindowCommand>(k_commandCapacity);
         
         public FlowStateMachine OwningFSM { get; internal set; }
+        public FlowStateContext Context { get; internal set; }
         public LifecycleState CurrentLifecycleState { get; internal set; }
         public byte Id { get; internal set; }
+
+        protected FlowState(FlowStateContext context)
+        {
+            Context = context;
+        }
         
         #region Public API
 

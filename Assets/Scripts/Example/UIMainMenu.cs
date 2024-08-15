@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 
 namespace Example
 {
-    public class UIGame : MonoBehaviour
+    public class UIMainMenu : MonoBehaviour
     {
         public FlowGroup flowGroup;
 
