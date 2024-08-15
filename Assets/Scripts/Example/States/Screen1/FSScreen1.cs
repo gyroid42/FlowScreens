@@ -82,6 +82,12 @@ namespace Example
                     OwningFSM.PushState(new FSMainMenu(Context));
                     break;
                 }
+                
+                case MenuNavigation.SCREEN_2:
+                {
+                    OwningFSM.PushState(new FSScreen2(Context));
+                    break;
+                }
             }
         }
         

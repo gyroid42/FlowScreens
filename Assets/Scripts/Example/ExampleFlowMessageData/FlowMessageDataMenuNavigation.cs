@@ -6,10 +6,11 @@ namespace FlowStates.FlowMessageUnion
 {
     public enum MenuNavigation : byte
     {
-        MAIN_MENU,
-        SCREEN_1,
-        SCREEN_2,
-        BACK
+        MAIN_MENU = 0,
+        SCREEN_1  = 1,
+        SCREEN_2  = 2,
+        BACK      = 3,
+        QUIT      = 4
     }
     
     [Serializable]

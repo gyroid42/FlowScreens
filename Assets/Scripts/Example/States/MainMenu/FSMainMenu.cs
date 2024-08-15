@@ -12,7 +12,6 @@ namespace Example
         
         private Task<GameObject> m_initTask;
         private UIMainMenu m_ui;
-        private float m_uiAnimationSpeed = 1f;
 
         public FSMainMenu(FlowStateContext context) : base(context) { }
         
@@ -69,7 +68,7 @@ namespace Example
 
         protected override void OnActiveUpdate()
         {
-            m_ui.UpdateUI(Time.deltaTime * m_uiAnimationSpeed);
+            m_ui.OnActiveUpdate(Time.deltaTime * Context.AnimationSpeed);
         }
 
         protected override void OnDismissingStart()
@@ -84,7 +83,7 @@ namespace Example
 
         protected override FlowProgress OnDismissingUpdate()
         {
-            return m_ui.UpdateDismissing(Time.deltaTime) ? FlowProgress.COMPLETE : FlowProgress.PROGRESSING;
+            return m_ui.OnDismissingUpdate(Time.deltaTime * Context.AnimationSpeed) ? FlowProgress.COMPLETE : FlowProgress.PROGRESSING;
         }
 
         private void HandleMenuNavigationMessage(in FlowMessageDataMenuNavigation message)
@@ -98,24 +97,18 @@ namespace Example
                     break;
                 }
 
-                case MenuNavigation.SCREEN_2:
-                {
-                    OwningFSM.PopState();
-                    OwningFSM.PushState(new FSScreen2(Context));
-                    break;
-                }
-
                 case MenuNavigation.BACK:
+                case MenuNavigation.QUIT:
                 {
-                    // close game
-                    break;
+                    Application.Quit();
+                    return;
                 }
             }
         }
 
         private void HandleSetAnimationSpeedMessage(in FlowMessageDataSetAnimationSpeed message)
         {
-            m_uiAnimationSpeed = message.speed;
+            Context.AnimationSpeed = message.speed;
         }
     }
 }
