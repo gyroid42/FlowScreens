@@ -30,7 +30,6 @@ namespace FlowStates
         private SparseArray<FlowWindow> m_presentingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
         private SparseArray<FlowWindow> m_initialisingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
 
-        private FixedQueueManaged<FlowWindow> m_windowsToAdd = new FixedQueueManaged<FlowWindow>(k_commandCapacity);
         private FixedQueue<FlowWindowCommand> m_commandQueue = new FixedQueue<FlowWindowCommand>(k_commandCapacity);
         
         public FlowStateMachine OwningFSM { get; internal set; }
@@ -45,18 +44,38 @@ namespace FlowStates
         
         #region Public API
 
-        public void AddWindow(FlowWindow window)
+        protected byte AddWindow(FlowWindow window)
         {
-            m_windowsToAdd.Enqueue(window);
+            bool found = false;
+            for (int i = 0; i < m_windows.Length; i++)
+            {
+                if (m_windows[i] != window)
+                {
+                    continue;
+                }
+                
+                found = true;
+                break;
+            }
+
+            if (found)
+            {
+                Debug.LogWarning("Trying to add duplicate entry of same FlowWindow in FlowState");
+                return byte.MaxValue;
+            }
+            
+            window.Id = (byte) m_windows.Insert(window);
             
             m_commandQueue.Enqueue(new FlowWindowCommand
             {
                 Command = Command.ADD_WINDOW,
-                WindowId = byte.MaxValue
+                WindowId = window.Id
             });
+
+            return window.Id;
         }
 
-        public void DismissWindow(byte windowId)
+        protected void DismissWindow(byte windowId)
         {
             m_commandQueue.Enqueue(new FlowWindowCommand
             {
@@ -188,7 +207,7 @@ namespace FlowStates
             for (var i = 0; i < m_windows.Length; i++)
             {
                 var window = m_windows[i];
-                HandleDismissWindowCommand(window.Id);
+                HandleDismissWindowCommand(window);
             }
             
             OnDismissingStart();
@@ -253,14 +272,15 @@ namespace FlowStates
             {
                 case Command.ADD_WINDOW:
                 {
-                    FlowWindow newWindow = m_windowsToAdd.Dequeue();
-                    HandleAddWindowCommand(newWindow);
+                    var window = m_windows.GetValue(command.WindowId);
+                    HandleAddWindowCommand(window);
                     break;
                 }
 
                 case Command.DISMISS_WINDOW:
                 {
-                    HandleDismissWindowCommand(command.WindowId);
+                    var window = m_windows.GetValue(command.WindowId);
+                    HandleDismissWindowCommand(window);
                     break;
                 }
 
@@ -290,35 +310,30 @@ namespace FlowStates
             }
         }
         
-        private void HandleDismissWindowCommand(byte id)
+        private void HandleDismissWindowCommand(FlowWindow flowWindow)
         {
-            if (!m_windows.TryGetValue(id, out var flowWindow))
-            {
-                return;
-            }
-            
             switch (flowWindow.CurrentState)
             {
                 case LifecycleState.ACTIVE:
                 {
-                    m_activeWindows.Remove(id);
+                    m_activeWindows.Remove(flowWindow.Id);
                     break;
                 }
 
                 case LifecycleState.INACTIVE:
                 {
-                    m_inactiveWindows.Remove(id);
+                    m_inactiveWindows.Remove(flowWindow.Id);
                     break;
                 }
 
                 case LifecycleState.PRESENTING:
                 {
-                    m_presentingWindows.Remove(id);
+                    m_presentingWindows.Remove(flowWindow.Id);
                     break;
                 }
             }
 
-            m_dismissingWindows.Insert(id, flowWindow);
+            m_dismissingWindows.Insert(flowWindow.Id, flowWindow);
             
             flowWindow.CurrentState = LifecycleState.DISMISSING;
             flowWindow.OnDismissingStart();
@@ -335,28 +350,9 @@ namespace FlowStates
 
         private void HandleAddWindowCommand(FlowWindow flowWindow)
         {
-            bool found = false;
-            for (int i = 0; i < m_windows.Length; i++)
-            {
-                if (m_windows[i] != flowWindow)
-                {
-                    continue;
-                }
-                
-                found = true;
-                break;
-            }
-
-            if (found)
-            {
-                Debug.LogWarning("Trying to add duplicate entry of same FlowWindow in FlowState");
-                return;
-            }
-
             flowWindow.Owner = this;
             flowWindow.OwningFSM = OwningFSM;
             flowWindow.CurrentState = LifecycleState.INITIALISING;
-            flowWindow.Id = (byte) m_windows.Insert(flowWindow);
             
             m_initialisingWindows.Insert(flowWindow.Id, flowWindow);
             flowWindow.OnInit();
@@ -364,8 +360,6 @@ namespace FlowStates
 
         private void SetWindowActive(FlowWindow flowWindow)
         {
-            Debug.Assert(m_windows.Contains(flowWindow.Id));
-            
             flowWindow.CurrentState = LifecycleState.ACTIVE;
             m_activeWindows.Insert(flowWindow.Id, flowWindow);
             
@@ -374,8 +368,6 @@ namespace FlowStates
 
         private void SetWindowInActive(FlowWindow flowWindow)
         {
-            Debug.Assert(m_windows.Contains(flowWindow.Id));
-            
             flowWindow.CurrentState = LifecycleState.INACTIVE;
             m_inactiveWindows.Insert(flowWindow.Id, flowWindow);
             

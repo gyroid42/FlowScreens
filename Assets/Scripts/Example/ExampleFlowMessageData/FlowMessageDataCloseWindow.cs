@@ -3,31 +3,26 @@ using System.Runtime.InteropServices;
 
 namespace FlowStates.FlowMessageUnion
 {
-    public enum WindowType : byte
-    {
-        EXAMPLE_1    = 0
-    }
-    
     [Serializable]
-    public struct FlowMessageDataOpenWindow
+    public struct FlowMessageDataCloseWindow
     {
         public WindowType window;
     }
     
     public unsafe partial struct FlowMessageData
     {
-        [FieldOffset(8)] private FlowMessageDataOpenWindow _OpenWindow;
+        [FieldOffset(8)] private FlowMessageDataCloseWindow _CloseWindow;
         
-        public ref FlowMessageDataOpenWindow OpenWindow
+        public ref FlowMessageDataCloseWindow CloseWindow
         {
             get
             {
-                fixed (FlowMessageDataOpenWindow* p = &_OpenWindow)
+                fixed (FlowMessageDataCloseWindow* p = &_CloseWindow)
                 {
-                    if (_field_used_ != FlowMessageType.OPEN_WINDOW)
+                    if (_field_used_ != FlowMessageType.CLOSE_WINDOW)
                     {
                         *p = default;
-                        _field_used_ = FlowMessageType.OPEN_WINDOW;
+                        _field_used_ = FlowMessageType.CLOSE_WINDOW;
                     }
 
                     return ref *p;

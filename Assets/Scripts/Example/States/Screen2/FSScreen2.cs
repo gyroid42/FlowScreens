@@ -13,6 +13,8 @@ namespace Example
         
         private Task<GameObject> m_initTask;
         private UIScreen2 m_ui;
+
+        private byte m_windowIdExample1 = byte.MaxValue;
         
         public FSScreen2(FlowStateContext context) : base(context) { }
 
@@ -62,7 +64,45 @@ namespace Example
 
                 case FlowMessageType.OPEN_WINDOW:
                 {
-                    HandleOpenWindowMessage(message.OpenWindow);
+                    HandleOpenWindowMessage(message.OpenWindow.window);
+                    break;
+                }
+
+                case FlowMessageType.CLOSE_WINDOW:
+                {
+                    HandleCloseWindowMessage(message.CloseWindow.window);
+                    break;
+                }
+            }
+        }
+
+        private void HandleOpenWindowMessage(WindowType window)
+        {
+            switch (window)
+            {
+                case WindowType.EXAMPLE_1:
+                {
+                    if (m_windowIdExample1 != byte.MaxValue)
+                    {
+                        return;
+                    }
+                    
+                    var context = Context;
+                    context.UIContainer = m_ui.WindowContainer;
+                    m_windowIdExample1 = AddWindow(new FWExampleWindow1(context));
+                    break;
+                }
+            }
+        }
+
+        private void HandleCloseWindowMessage(WindowType window)
+        {
+            switch (window)
+            {
+                case WindowType.EXAMPLE_1:
+                {
+                    DismissWindow(m_windowIdExample1);
+                    m_windowIdExample1 = byte.MaxValue;
                     break;
                 }
             }
@@ -75,20 +115,6 @@ namespace Example
                 case MenuNavigation.BACK:
                 {
                     OwningFSM.PopState();
-                    break;
-                }
-            }
-        }
-
-        private void HandleOpenWindowMessage(in FlowMessageDataOpenWindow message)
-        {
-            switch (message.window)
-            {
-                case OpenWindow.EXAMPLE_1:
-                {
-                    var context = Context;
-                    context.UIContainer = m_ui.WindowContainer;
-                    AddWindow(new FWExampleWindow1(context));
                     break;
                 }
             }

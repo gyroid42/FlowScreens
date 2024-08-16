@@ -7,6 +7,7 @@ namespace Example.Windows
     public class UIExampleWindow1 : MonoBehaviour
     {
         [SerializeField] private FlowGroup flowGroup;
+        [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private float presentTime;
         [SerializeField] private float dismissTime;
         
@@ -50,6 +51,11 @@ namespace Example.Windows
             m_rectTransform.anchoredPosition = new Vector2(xPos, 0f);
             
             return m_time >= dismissTime;
+        }
+
+        public void SetAlpha(float alpha)
+        {
+            canvasGroup.alpha = math.clamp(alpha, 0f, 1f);
         }
     }
 }

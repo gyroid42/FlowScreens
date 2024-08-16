@@ -58,6 +58,12 @@ namespace Example.Windows
                     HandleMenuNavigationMessage(message.MenuNavigation);
                     break;
                 }
+
+                case FlowMessageType.ALPHA_SELECT:
+                {
+                    m_ui.SetAlpha(message.AlphaSelect.alpha);
+                    break;
+                }
             }
         }
         
@@ -68,7 +74,13 @@ namespace Example.Windows
                 case MenuNavigation.BACK:
                 case MenuNavigation.QUIT:
                 {
-                    Owner.DismissWindow(Id);
+                    OwningFSM.SendMessageToState(new FlowMessageData
+                    {
+                        CloseWindow = new FlowMessageDataCloseWindow()
+                        {
+                            window = WindowType.EXAMPLE_1
+                        }
+                    }, Owner.Id);
                     return;
                 }
             }
