@@ -31,6 +31,7 @@ namespace FlowStates
         private SparseArray<FlowWindow> m_initialisingWindows = new SparseArray<FlowWindow>(k_windowCapacity);
 
         private FixedQueue<FlowWindowCommand> m_commandQueue = new FixedQueue<FlowWindowCommand>(k_commandCapacity);
+        private SparseArray<byte> m_pendingWindowsToDismiss = new SparseArray<byte>(k_windowCapacity);
         
         public FlowStateMachine OwningFSM { get; internal set; }
         public LifecycleState CurrentLifecycleState { get; internal set; }
@@ -108,7 +109,8 @@ namespace FlowStates
         
         internal void SendMessageToWindow(FlowMessageData message, byte windowId)
         {
-            if (m_windows.TryGetValue(windowId, out var window))
+            if (m_windows.TryGetValue(windowId, out var window) &&
+                (window.CurrentState == LifecycleState.ACTIVE || window.CurrentState == LifecycleState.PRESENTING))
             {
                 window.OnFlowMessageReceived(message);
             }
@@ -152,6 +154,12 @@ namespace FlowStates
                 {
                     m_presentingWindows.Remove(window.Id);
                     SetWindowActive(window);
+
+                    if (m_pendingWindowsToDismiss.Contains(window.Id))
+                    {
+                        DismissWindow(window);
+                        m_pendingWindowsToDismiss.Remove(window.Id);
+                    }
                 }
             }
             
@@ -207,7 +215,12 @@ namespace FlowStates
             for (var i = 0; i < m_windows.Length; i++)
             {
                 var window = m_windows[i];
-                HandleDismissWindowCommand(window);
+
+                if (window.CurrentState != LifecycleState.DISMISSING &&
+                    window.CurrentState != LifecycleState.DISMISSED)
+                {
+                    DismissWindow(window);
+                }
             }
             
             OnDismissingStart();
@@ -215,6 +228,18 @@ namespace FlowStates
 
         internal FlowProgress OnDismissingUpdateInternal()
         {
+            for (int i = 0; i < m_presentingWindows.Length; i++)
+            {
+                var window = m_presentingWindows[i];
+                if (window.OnPresentingUpdate() == FlowProgress.COMPLETE)
+                {
+                    m_presentingWindows.Remove(window.Id);
+                    SetWindowActive(window);
+
+                    DismissWindow(window);
+                }
+            }
+            
             for (var i = 0; i < m_dismissingWindows.Length; i++)
             {
                 var window = m_dismissingWindows[i];
@@ -268,25 +293,28 @@ namespace FlowStates
         private void ProcessNextWindowCommand()
         {
             FlowWindowCommand command = m_commandQueue.Dequeue();
+            
+            if (!m_windows.TryGetValue(command.WindowId, out var window))
+            {
+                return;
+            }
+            
             switch (command.Command)
             {
                 case Command.ADD_WINDOW:
                 {
-                    var window = m_windows.GetValue(command.WindowId);
                     HandleAddWindowCommand(window);
                     break;
                 }
 
                 case Command.DISMISS_WINDOW:
                 {
-                    var window = m_windows.GetValue(command.WindowId);
-                    HandleDismissWindowCommand(window);
+                    DismissWindow(window);
                     break;
                 }
 
                 case Command.SET_WINDOW_ACTIVE:
                 {
-                    var window = m_windows.GetValue(command.WindowId);
                     if (window.CurrentState != LifecycleState.INACTIVE)
                     {
                         break;
@@ -298,7 +326,6 @@ namespace FlowStates
 
                 case Command.SET_WINDOW_INACTIVE:
                 {
-                    var window = m_windows.GetValue(command.WindowId);
                     if (window.CurrentState != LifecycleState.ACTIVE)
                     {
                         break;
@@ -310,7 +337,7 @@ namespace FlowStates
             }
         }
         
-        private void HandleDismissWindowCommand(FlowWindow flowWindow)
+        private void DismissWindow(FlowWindow flowWindow)
         {
             switch (flowWindow.CurrentState)
             {
@@ -328,8 +355,8 @@ namespace FlowStates
 
                 case LifecycleState.PRESENTING:
                 {
-                    m_presentingWindows.Remove(flowWindow.Id);
-                    break;
+                    m_pendingWindowsToDismiss.Insert(flowWindow.Id, flowWindow.Id);
+                    return;
                 }
             }
 

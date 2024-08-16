@@ -101,6 +101,11 @@ namespace Example
             {
                 case WindowType.EXAMPLE_1:
                 {
+                    if (m_windowIdExample1 == byte.MaxValue)
+                    {
+                        return;
+                    }
+                    
                     DismissWindow(m_windowIdExample1);
                     m_windowIdExample1 = byte.MaxValue;
                     break;

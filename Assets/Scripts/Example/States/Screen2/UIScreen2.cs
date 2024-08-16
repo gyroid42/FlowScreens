@@ -40,7 +40,7 @@ namespace Example
         {
             m_time += dt;
             
-            canvasGroup.alpha = math.clamp(1f - Easing.EaseOut(m_time / dismissTime), 0f, 1f);
+            canvasGroup.alpha = math.clamp(1f - Easing.EaseOut(math.clamp(m_time / dismissTime, 0f, 1f)), 0f, 1f);
 
             return m_time >= dismissTime;
         }

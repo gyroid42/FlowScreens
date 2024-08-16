@@ -945,8 +945,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   flowGroup: {fileID: 2213317651769056212}
   canvasGroup: {fileID: 7668363902902658709}
-  presentTime: 2
-  dismissTime: 2
+  presentTime: 0.5
+  dismissTime: 0.5
 --- !u!225 &7668363902902658709
 CanvasGroup:
   m_ObjectHideFlags: 0

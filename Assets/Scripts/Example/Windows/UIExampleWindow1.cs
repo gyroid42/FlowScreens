@@ -47,7 +47,7 @@ namespace Example.Windows
             m_time += dt;
 
             var sizeDelta = m_rectTransform.sizeDelta;
-            var xPos = -sizeDelta.x * math.clamp(m_time / presentTime, 0f, 1f);
+            var xPos = -sizeDelta.x * math.clamp(m_time / dismissTime, 0f, 1f);
             m_rectTransform.anchoredPosition = new Vector2(xPos, 0f);
             
             return m_time >= dismissTime;
