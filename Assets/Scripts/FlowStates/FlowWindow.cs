@@ -7,10 +7,10 @@ namespace FlowStates
         public LifecycleState CurrentState { get; internal set; }
         public FlowStateMachine OwningFSM { get; internal set; }
         public FlowState Owner { get; internal set; }
-        public FlowWindowContext Context { get; internal set; }
+        public FlowStateContext Context { get; internal set; }
         public byte Id { get; internal set; }
 
-        protected FlowWindow(FlowWindowContext context)
+        protected FlowWindow(FlowStateContext context)
         {
             Context = context;
         }
@@ -18,6 +18,7 @@ namespace FlowStates
         public virtual void OnInit() { }
         public virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
         public virtual void LinkFlowGroups() { }
+        public virtual void OnFlowMessageReceived(in FlowMessageData message) { }
         
         public virtual void OnPresentingStart() { }
         public virtual FlowProgress OnPresentingUpdate()
@@ -27,17 +28,17 @@ namespace FlowStates
         
         public virtual void OnActiveStart() { }
         public virtual void OnActiveUpdate() { }
+        public virtual void OnActiveLateUpdate() { }
+        public virtual void OnActiveFixedUpdate() { }
+        
+        public virtual void OnInActiveStart() { }
         public virtual void OnInActiveUpdate() { }
-
+        
+        public virtual void OnDismissingStart() { }
         public virtual FlowProgress OnDismissingUpdate()
         {
             return FlowProgress.COMPLETE;
         }
-        public virtual void OnActiveLateUpdate() { }
-        public virtual void OnActiveFixedUpdate() { }
-        public virtual void OnDismissingStart() { }
         public virtual void OnDismissed() { }
-        public virtual void OnInActiveStart() { }
-        public virtual void OnFlowMessageReceived(in FlowMessageData message) { }
     }
 }

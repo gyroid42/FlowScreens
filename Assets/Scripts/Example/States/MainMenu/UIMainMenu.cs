@@ -6,15 +6,14 @@ namespace Example
 {
     public class UIMainMenu : MonoBehaviour
     {
-        public FlowGroup flowGroup;
-
+        [SerializeField] private FlowGroup flowGroup;
         [SerializeField] private RectTransform imageTransform;
         [SerializeField] private float frequency;
         [SerializeField] private float amplitude;
-
         [SerializeField] private CanvasGroup canvasGroup;
-
         [SerializeField] private float dismissTime;
+        
+        public FlowGroup FlowGroup => flowGroup;
 
         private float m_time = 0f;
         

@@ -5,6 +5,8 @@ namespace Example
 {
     public class UIConfirmPopup : MonoBehaviour
     {
-        public FlowGroup flowGroup;
+        [SerializeField] private FlowGroup flowGroup;
+        
+        public FlowGroup FlowGroup => flowGroup;
     }
 }

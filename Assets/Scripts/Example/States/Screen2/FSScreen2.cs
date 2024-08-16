@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Example.Windows;
 using FlowStates;
 using FlowStates.FlowMessageUnion;
 using UnityEngine;
@@ -27,7 +28,7 @@ namespace Example
                 return FlowProgress.PROGRESSING;
             }
 
-            var uiGo = Object.Instantiate(m_initTask.Result, Context.CanvasTransform);
+            var uiGo = Object.Instantiate(m_initTask.Result, Context.UIContainer);
             m_ui = uiGo.GetComponentInChildren<UIScreen2>();
             m_ui.Init();
 
@@ -46,7 +47,7 @@ namespace Example
 
         internal override void LinkFlowGroups()
         {
-            m_ui.flowGroup.Link(OwningFSM, Id);
+            m_ui.FlowGroup.Link(OwningFSM, Id);
         }
         
         internal override void OnFlowMessageReceived(in FlowMessageData message)
@@ -56,6 +57,12 @@ namespace Example
                 case FlowMessageType.MENU_NAVIGATION:
                 {
                     HandleMenuNavigationMessage(message.MenuNavigation);
+                    break;
+                }
+
+                case FlowMessageType.OPEN_WINDOW:
+                {
+                    HandleOpenWindowMessage(message.OpenWindow);
                     break;
                 }
             }
@@ -68,6 +75,20 @@ namespace Example
                 case MenuNavigation.BACK:
                 {
                     OwningFSM.PopState();
+                    break;
+                }
+            }
+        }
+
+        private void HandleOpenWindowMessage(in FlowMessageDataOpenWindow message)
+        {
+            switch (message.window)
+            {
+                case OpenWindow.EXAMPLE_1:
+                {
+                    var context = Context;
+                    context.UIContainer = m_ui.WindowContainer;
+                    AddWindow(new FWExampleWindow1(context));
                     break;
                 }
             }

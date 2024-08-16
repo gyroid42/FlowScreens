@@ -27,7 +27,7 @@ namespace Example
                 return FlowProgress.PROGRESSING;
             }
 
-            var uiGo = Object.Instantiate(m_initTask.Result, Context.CanvasTransform);
+            var uiGo = Object.Instantiate(m_initTask.Result, Context.UIContainer);
             m_ui = uiGo.GetComponentInChildren<UIScreen1>();
 
             m_initTask = null;
@@ -45,7 +45,7 @@ namespace Example
 
         internal override void LinkFlowGroups()
         {
-            m_ui.flowGroup.Link(OwningFSM, Id);
+            m_ui.FlowGroup.Link(OwningFSM, Id);
         }
         
         internal override void OnFlowMessageReceived(in FlowMessageData message)

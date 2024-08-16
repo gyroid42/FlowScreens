@@ -6,11 +6,14 @@ namespace Example
 {
     public class UIScreen2 : MonoBehaviour
     {
-        public FlowGroup flowGroup;
-
+        [SerializeField] private FlowGroup flowGroup;
+        [SerializeField] private RectTransform windowContainer;
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private float presentTime;
         [SerializeField] private float dismissTime;
+        
+        public FlowGroup FlowGroup => flowGroup;
+        public RectTransform WindowContainer => windowContainer;
 
         private float m_time = 0f;
 

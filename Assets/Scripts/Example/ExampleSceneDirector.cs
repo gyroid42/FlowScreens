@@ -13,7 +13,7 @@ namespace Example
         {
             m_flowStateMachine.PushState(new FSGame(new FlowStateContext
             {
-                CanvasTransform = uiCanvas
+                UIContainer = uiCanvas
             }));
         }
 

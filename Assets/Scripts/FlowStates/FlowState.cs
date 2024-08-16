@@ -52,7 +52,7 @@ namespace FlowStates
             m_commandQueue.Enqueue(new FlowWindowCommand
             {
                 Command = Command.ADD_WINDOW,
-                WindowId = 0
+                WindowId = byte.MaxValue
             });
         }
 

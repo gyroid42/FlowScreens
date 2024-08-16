@@ -4,7 +4,7 @@ namespace FlowStates
 {
     public partial struct FlowStateContext
     {
-        public RectTransform CanvasTransform;
+        public RectTransform UIContainer;
         public float AnimationSpeed;
     }
 }
