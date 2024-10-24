@@ -1,4 +1,5 @@
-﻿using Collections;
+﻿using System.Threading.Tasks;
+using Collections;
 using FlowStates.FlowMessageUnion;
 using UnityEngine;
 
@@ -34,6 +35,7 @@ namespace FlowStates
         private SparseArray<byte> m_pendingWindowsToDismiss = new SparseArray<byte>(k_windowCapacity);
         
         public FlowStateMachine OwningFSM { get; internal set; }
+        private Task m_initTask;
         public LifecycleState CurrentLifecycleState { get; internal set; }
         public byte Id { get; internal set; }
         protected FlowStateContext Context;
@@ -257,6 +259,20 @@ namespace FlowStates
             return m_windows.Length == 0? FlowProgress.COMPLETE : FlowProgress.PROGRESSING;
         }
         
+        internal void OnInitInternal()
+        {
+            m_initTask = OnInit();
+        }
+
+        internal FlowProgress OnInitUpdate()
+        {
+            if (m_initTask is { IsCompleted: false })
+            {
+                return FlowProgress.PROGRESSING;
+            }
+
+            return FlowProgress.COMPLETE;
+        }
 
         #endregion
         
@@ -264,8 +280,7 @@ namespace FlowStates
 
         internal virtual void OnFlowMessageReceived(in FlowMessageData message) { }
 
-        internal virtual void OnInit() {  }
-        internal virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
+        protected virtual Task OnInit() => null;
         internal virtual void LinkFlowGroups() { }
         
         internal virtual void OnPresentingStart() { }

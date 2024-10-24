@@ -10,37 +10,22 @@ namespace Example
     {
         private const string k_uiPrefabAddress = "UIMainMenu.prefab";
         
-        private Task<GameObject> m_initTask;
         private UIMainMenu m_ui;
 
         public FSMainMenu(FlowStateContext context) : base(context) { }
         
-        internal override void OnInit()
+        protected override Task OnInit()
         {
-            m_initTask = LoadAssets();
+            return LoadAssets();
         }
-
-        internal override FlowProgress OnInitUpdate()
-        {
-            if (!m_initTask.IsCompleted)
-            {
-                return FlowProgress.PROGRESSING;
-            }
-
-            var uiGo = Object.Instantiate(m_initTask.Result, Context.UIContainer);
-            m_ui = uiGo.GetComponentInChildren<UIMainMenu>();
-
-            m_initTask = null;
-            
-            return FlowProgress.COMPLETE;
-        }
-
-        private async Task<GameObject> LoadAssets()
+        
+        private async Task LoadAssets()
         {
             var uiLoadHandle = Addressables.LoadAssetAsync<GameObject>(k_uiPrefabAddress);
             await uiLoadHandle.Task;
 
-            return uiLoadHandle.Result;
+            var uiGo = Object.Instantiate(uiLoadHandle.Result, Context.UIContainer);
+            m_ui = uiGo.GetComponentInChildren<UIMainMenu>();
         }
 
         internal override void LinkFlowGroups()

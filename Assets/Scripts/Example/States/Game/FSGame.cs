@@ -1,4 +1,5 @@
-﻿using FlowStates;
+﻿using System.Threading.Tasks;
+using FlowStates;
 
 namespace Example
 {
@@ -9,9 +10,10 @@ namespace Example
             Context.AnimationSpeed = 1f;
         }
 
-        internal override void OnInit()
+        protected override Task OnInit()
         {
             OwningFSM.PushState(new FSMainMenu(Context));
+            return null;
         }
     }
 }

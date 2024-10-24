@@ -230,7 +230,7 @@ namespace FlowStates
 
             m_stateStack.Push(flowState);
             
-            flowState.OnInit();
+            flowState.OnInitInternal();
         }
     }
 }

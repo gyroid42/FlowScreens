@@ -11,40 +11,24 @@ namespace Example
     {
         private const string k_uiPrefabAddress = "UIScreen2.prefab";
         
-        private Task<GameObject> m_initTask;
         private UIScreen2 m_ui;
 
         private byte m_windowIdExample1 = byte.MaxValue;
         
         public FSScreen2(FlowStateContext context) : base(context) { }
 
-        internal override void OnInit()
+        protected override Task OnInit()
         {
-            m_initTask = LoadAssets();
+            return LoadAssets();
         }
         
-        internal override FlowProgress OnInitUpdate()
-        {
-            if (!m_initTask.IsCompleted)
-            {
-                return FlowProgress.PROGRESSING;
-            }
-
-            var uiGo = Object.Instantiate(m_initTask.Result, Context.UIContainer);
-            m_ui = uiGo.GetComponentInChildren<UIScreen2>();
-            m_ui.Init();
-
-            m_initTask = null;
-            
-            return FlowProgress.COMPLETE;
-        }
-        
-        private async Task<GameObject> LoadAssets()
+        private async Task LoadAssets()
         {
             var uiLoadHandle = Addressables.LoadAssetAsync<GameObject>(k_uiPrefabAddress);
             await uiLoadHandle.Task;
 
-            return uiLoadHandle.Result;
+            var uiGo = Object.Instantiate(uiLoadHandle.Result, Context.UIContainer);
+            m_ui = uiGo.GetComponentInChildren<UIScreen2>();
         }
 
         internal override void LinkFlowGroups()

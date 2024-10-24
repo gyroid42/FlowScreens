@@ -10,7 +10,6 @@ namespace Example
     {
         private const string k_uiPrefabAddress = "UIConfirmPopup.prefab";
         
-        private Task<GameObject> m_initTask;
         private UIConfirmPopup m_ui;
         private readonly byte m_targetFlowStateId;
         private readonly byte m_targetWindowId;
@@ -21,32 +20,18 @@ namespace Example
             m_targetWindowId = targetWindowId;
         }
 
-        internal override void OnInit()
+        protected override Task OnInit()
         {
-            m_initTask = LoadAssets();
+            return LoadAssets();
         }
         
-        internal override FlowProgress OnInitUpdate()
-        {
-            if (!m_initTask.IsCompleted)
-            {
-                return FlowProgress.PROGRESSING;
-            }
-
-            var uiGo = Object.Instantiate(m_initTask.Result, Context.UIContainer);
-            m_ui = uiGo.GetComponentInChildren<UIConfirmPopup>();
-
-            m_initTask = null;
-            
-            return FlowProgress.COMPLETE;
-        }
-        
-        private async Task<GameObject> LoadAssets()
+        private async Task LoadAssets()
         {
             var uiLoadHandle = Addressables.LoadAssetAsync<GameObject>(k_uiPrefabAddress);
             await uiLoadHandle.Task;
 
-            return uiLoadHandle.Result;
+            var uiGo = Object.Instantiate(uiLoadHandle.Result, Context.UIContainer);
+            m_ui = uiGo.GetComponentInChildren<UIConfirmPopup>();
         }
 
         internal override void LinkFlowGroups()
