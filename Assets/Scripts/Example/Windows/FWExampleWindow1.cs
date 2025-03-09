@@ -44,9 +44,9 @@ namespace Example.Windows
             return uiLoadHandle.Result;
         }
 
-        public override void LinkFlowGroups()
+        public override void LinkFlowGroups(in int flowStateId)
         {
-            m_ui.FlowGroup.Link(OwningFSM, Owner.Id, Id);
+            m_ui.FlowGroup.Link(OwningFSM, flowStateId, Id);
         }
 
         public override void OnFlowMessageReceived(in FlowMessageData message)

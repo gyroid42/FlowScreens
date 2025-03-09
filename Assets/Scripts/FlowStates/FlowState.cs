@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Collections;
 using FlowStates.FlowMessageUnion;
 using UnityEngine;
@@ -36,11 +37,11 @@ namespace FlowStates
         
         public FlowStateMachine OwningFSM { get; internal set; }
         private Task m_initTask;
-        public LifecycleState CurrentLifecycleState { get; internal set; }
-        public byte Id { get; internal set; }
+        public int Id { get; internal set; }
+        internal LifecycleState CurrentLifecycleState;
         protected FlowStateContext Context;
 
-        protected FlowState(FlowStateContext context)
+        protected FlowState(in FlowStateContext context)
         {
             Context = context;
         }
@@ -109,7 +110,8 @@ namespace FlowStates
         
         #region Internal API
         
-        internal void SendMessageToWindow(FlowMessageData message, byte windowId)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void SendMessageToWindow(in FlowMessageData message, byte windowId)
         {
             if (m_windows.TryGetValue(windowId, out var window) &&
                 (window.CurrentState == LifecycleState.ACTIVE || window.CurrentState == LifecycleState.PRESENTING))
@@ -118,6 +120,7 @@ namespace FlowStates
             }
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void OnActiveStartInternal()
         {
             for (var i = 0; i < m_activeWindows.Length; i++)
@@ -142,7 +145,7 @@ namespace FlowStates
                 FlowProgress progress = window.OnInitUpdate();
                 if (progress == FlowProgress.COMPLETE)
                 {
-                    window.LinkFlowGroups();
+                    window.LinkFlowGroups(Id);
                     m_initialisingWindows.Remove(window.Id);
                     SetWindowPresenting(window);
                 }
@@ -190,6 +193,7 @@ namespace FlowStates
             OnActiveUpdate();
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void OnActiveLateUpdateInternal()
         {
             for (var i = 0; i < m_activeWindows.Length; i++)
@@ -201,6 +205,7 @@ namespace FlowStates
             OnActiveLateUpdate();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void OnActiveFixedUpdateInternal()
         {
             for (var i = 0; i < m_activeWindows.Length; i++)
@@ -212,6 +217,7 @@ namespace FlowStates
             OnActiveFixedUpdate();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void OnDismissingStartInternal()
         {
             for (var i = 0; i < m_windows.Length; i++)
@@ -228,6 +234,7 @@ namespace FlowStates
             OnDismissingStart();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal FlowProgress OnDismissingUpdateInternal()
         {
             for (int i = 0; i < m_presentingWindows.Length; i++)
@@ -258,12 +265,14 @@ namespace FlowStates
             
             return m_windows.Length == 0? FlowProgress.COMPLETE : FlowProgress.PROGRESSING;
         }
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void OnInitInternal()
         {
             m_initTask = OnInit();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal FlowProgress OnInitUpdate()
         {
             if (m_initTask is { IsCompleted: false })
@@ -274,6 +283,7 @@ namespace FlowStates
             return FlowProgress.COMPLETE;
         }
 
+        
         #endregion
         
         #region Virtual Methods
@@ -381,6 +391,7 @@ namespace FlowStates
             flowWindow.OnDismissingStart();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void RemoveWindow(int id)
         {
             var flowWindow = m_windows.GetValue(id);
@@ -390,6 +401,7 @@ namespace FlowStates
             m_dismissingWindows.Remove(id);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void HandleAddWindowCommand(FlowWindow flowWindow)
         {
             flowWindow.Owner = this;
@@ -400,6 +412,7 @@ namespace FlowStates
             flowWindow.OnInit();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetWindowActive(FlowWindow flowWindow)
         {
             flowWindow.CurrentState = LifecycleState.ACTIVE;
@@ -408,6 +421,7 @@ namespace FlowStates
             flowWindow.OnActiveStart();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetWindowInActive(FlowWindow flowWindow)
         {
             flowWindow.CurrentState = LifecycleState.INACTIVE;
@@ -416,6 +430,7 @@ namespace FlowStates
             flowWindow.OnInActiveStart();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetWindowPresenting(FlowWindow flowWindow)
         {
             Debug.Assert(m_windows.Contains(flowWindow.Id));

@@ -4,7 +4,7 @@ namespace FlowStates
 {
     public abstract class FlowWindow
     {
-        public LifecycleState CurrentState { get; internal set; }
+        internal LifecycleState CurrentState;
         public FlowStateMachine OwningFSM { get; internal set; }
         public FlowState Owner { get; internal set; }
         public FlowStateContext Context { get; internal set; }
@@ -17,7 +17,7 @@ namespace FlowStates
         
         public virtual void OnInit() { }
         public virtual FlowProgress OnInitUpdate() => FlowProgress.COMPLETE;
-        public virtual void LinkFlowGroups() { }
+        public virtual void LinkFlowGroups(in int flowStateId) { }
         public virtual void OnFlowMessageReceived(in FlowMessageData message) { }
         
         public virtual void OnPresentingStart() { }

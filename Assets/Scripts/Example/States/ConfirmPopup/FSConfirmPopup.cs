@@ -11,10 +11,10 @@ namespace Example
         private const string k_uiPrefabAddress = "UIConfirmPopup.prefab";
         
         private UIConfirmPopup m_ui;
-        private readonly byte m_targetFlowStateId;
+        private readonly int m_targetFlowStateId;
         private readonly byte m_targetWindowId;
 
-        public FSConfirmPopup(FlowStateContext context, byte targetFlowStateId, byte targetWindowId = byte.MaxValue) : base(context)
+        public FSConfirmPopup(FlowStateContext context, int targetFlowStateId, byte targetWindowId = byte.MaxValue) : base(context)
         {
             m_targetFlowStateId = targetFlowStateId;
             m_targetWindowId = targetWindowId;

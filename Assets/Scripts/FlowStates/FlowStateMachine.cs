@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Collections;
 using FlowStates.FlowMessageUnion;
 using UnityEngine;
@@ -22,11 +23,38 @@ namespace FlowStates
         
         private readonly QueueArray<(FlowMessageData message, byte windowId)> m_pendingMessageQueue = new QueueArray<(FlowMessageData, byte)>(k_stateStackCapacity, k_messageQueueCapacity);
 
-        private FlowState ActiveFlowState => m_stateStack.Count == 0? null : m_stateStack.Peek();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetActiveFlowState(out FlowState flowState, out int id)
+        {
+            if (m_stateStack.Count == 0)
+            {
+                flowState = null;
+                id = -1;
+                return false;
+            }
 
+            id = m_stateStack.Count - 1;
+            flowState = m_stateStack[id];
+            return true;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetActiveFlowState(out FlowState flowState)
+        {
+            int stateCount = m_stateStack.Count;
+            if (stateCount == 0)
+            {
+                flowState = null;
+                return false;
+            }
+
+            flowState = m_stateStack[stateCount - 1];
+            return true;
+        }
+        
         #region Public API
 
-        public void SendMessageToActiveState(FlowMessageData message)
+        public void SendMessageToActiveState(in FlowMessageData message)
         {
             if (m_stateStack.Count <= 0)
             {
@@ -37,7 +65,7 @@ namespace FlowStates
             m_pendingMessageQueue.Enqueue(m_stateStack.Count -1, (message, byte.MaxValue));
         }
 
-        public void SendMessageToStateIfActive(FlowMessageData message, byte stateId, byte windowId = byte.MaxValue)
+        public void SendMessageToStateIfActive(in FlowMessageData message, int stateId, byte windowId = byte.MaxValue)
         {
             if (stateId != m_stateStack.Count - 1)
             {
@@ -47,7 +75,7 @@ namespace FlowStates
             m_pendingMessageQueue.Enqueue(stateId, (message, windowId));
         }
         
-        public void SendMessageToState(FlowMessageData message, byte stateId, byte windowId = byte.MaxValue)
+        public void SendMessageToState(in FlowMessageData message, int stateId, byte windowId = byte.MaxValue)
         {
             if (stateId >= m_stateStack.Count)
             {
@@ -57,12 +85,14 @@ namespace FlowStates
             m_pendingMessageQueue.Enqueue(stateId, (message, windowId));
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PushState(FlowState flowState)
         {
             m_flowStatesToAdd.Enqueue(flowState);
             m_commandQueue.Enqueue(Command.PUSH_STATE);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PopState()
         {
             m_commandQueue.Enqueue(Command.POP_STATE);
@@ -76,9 +106,7 @@ namespace FlowStates
         
         public void FixedUpdate()
         {
-            FlowState activeFlowState = ActiveFlowState;
-
-            if (!(activeFlowState is { CurrentLifecycleState: LifecycleState.ACTIVE }))
+            if (!TryGetActiveFlowState(out var activeFlowState) || activeFlowState.CurrentLifecycleState != LifecycleState.ACTIVE)
             {
                 return;
             }
@@ -88,9 +116,7 @@ namespace FlowStates
         
         public void LateUpdate()
         {
-            FlowState activeFlowState = ActiveFlowState;
-
-            if (!(activeFlowState is { CurrentLifecycleState: LifecycleState.ACTIVE }))
+            if (!TryGetActiveFlowState(out var activeFlowState) || activeFlowState.CurrentLifecycleState != LifecycleState.ACTIVE)
             {
                 return;
             }
@@ -100,14 +126,12 @@ namespace FlowStates
 
         #endregion
         
-
         
         private void UpdateActive()
         {
-            FlowState activeFlowState = ActiveFlowState;
-            if (activeFlowState == null)
+            if (!TryGetActiveFlowState(out var activeFlowState, out var activeId))
             {
-                TryProcessNextFlowCommand(null);
+                TryProcessNextFlowCommand();
                 
                 return;
             }
@@ -137,9 +161,9 @@ namespace FlowStates
 
                 case LifecycleState.ACTIVE:
                 {
-                    while (m_pendingMessageQueue.GetQueueCount(activeFlowState.Id) > 0)
+                    while (m_pendingMessageQueue.GetQueueCount(activeId) > 0)
                     {
-                        var (message, windowId) = m_pendingMessageQueue.Dequeue(activeFlowState.Id);
+                        var (message, windowId) = m_pendingMessageQueue.Dequeue(activeId);
 
                         if (windowId == byte.MaxValue)
                         {
@@ -164,7 +188,7 @@ namespace FlowStates
                         m_stateStack.Pop();
                         activeFlowState.OnDismissed();
                         activeFlowState.CurrentLifecycleState = LifecycleState.DISMISSED;
-                        m_pendingMessageQueue.Clear(activeFlowState.Id);
+                        m_pendingMessageQueue.Clear(activeId);
 
                         if (m_stateStack.Count > 0)
                         {
@@ -178,6 +202,7 @@ namespace FlowStates
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateInActive()
         {
             for (int i = 0; i < m_stateStack.Count-1; i++)
@@ -185,7 +210,27 @@ namespace FlowStates
                 m_stateStack[i].OnInActiveUpdate();
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void TryProcessNextFlowCommand()
+        {
+            if (m_commandQueue.Count <= 0)
+            {
+                return;
+            }
+            
+            Command command = m_commandQueue.Dequeue();
+            switch (command)
+            {
+                case Command.PUSH_STATE:
+                {
+                    PushStateToStack(m_flowStatesToAdd.Dequeue());
+                    break;
+                }
+            }
+        }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void TryProcessNextFlowCommand(in FlowState activeFlowState)
         {
             if (m_commandQueue.Count <= 0)
@@ -222,11 +267,12 @@ namespace FlowStates
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void PushStateToStack(in FlowState flowState)
         {
             flowState.CurrentLifecycleState = LifecycleState.INITIALISING;
             flowState.OwningFSM = this;
-            flowState.Id = (byte) m_stateStack.Count;
+            flowState.Id = m_stateStack.Count;
 
             m_stateStack.Push(flowState);
             
